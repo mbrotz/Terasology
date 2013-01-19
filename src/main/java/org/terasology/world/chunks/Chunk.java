@@ -233,6 +233,13 @@ public class Chunk implements Externalizable {
         }
     }
     
+    /**
+     * This is an experimental implementation of a simple way to retrieve some statistics about a chunk.
+     * It will be subject to change.
+     * 
+     * @author Manuel Brotz <manu.brotz@gmx.ch>
+     *
+     */
     public static class Statistics {
         
         private final Vector3i chunk;
