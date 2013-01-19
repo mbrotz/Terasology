@@ -21,6 +21,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.text.DecimalFormat;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.vecmath.Vector3f;
@@ -38,6 +39,7 @@ import org.terasology.rendering.primitives.ChunkMesh;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.blockdata.TeraArray;
+import org.terasology.world.chunks.blockdata.TeraArrayIterator;
 import org.terasology.world.chunks.blockdata.TeraArrays;
 import org.terasology.world.chunks.blockdata.TeraDenseArray4Bit;
 import org.terasology.world.chunks.blockdata.TeraDenseArray8Bit;
@@ -47,7 +49,9 @@ import org.terasology.world.liquid.LiquidData;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
 
 /**
  * Chunks are the basic components of the world. Each chunk contains a fixed amount of blocks
@@ -228,6 +232,48 @@ public class Chunk implements Externalizable {
             return new Chunk(pos, state, blockData, sunlightData, lightData, extraData);
         }
     }
+    
+    public static class Statistics {
+        
+        private final Vector3i chunk;
+        private final Multiset<Integer> blocks = HashMultiset.create();
+        
+        private void computeBlockCounts(final Chunk chunk) {
+            final TeraArrayIterator it = chunk.blockData.iterator();
+            int lastBlock = it.value(), count = 1;
+            it.advance();
+            while (it.hasNext()) {
+                final int block = it.value();
+                if (lastBlock == block) {
+                    count++;
+                } else {
+                    blocks.add(lastBlock, count);
+                    lastBlock = block;
+                    count = 1;
+                }
+                it.advance();
+            }
+            blocks.add(lastBlock, count);
+        }
+        
+        private Statistics(Chunk chunk) {
+            Preconditions.checkNotNull(chunk, "The parameter 'chunk' must not be null");
+            this.chunk = chunk.getPos();
+            computeBlockCounts(chunk);
+        }
+        
+        public final Vector3i getChunk() {
+            return new Vector3i(chunk);
+        }
+        
+        public final Set<Integer> getBlocks() {
+            return blocks.elementSet();
+        }
+        
+        public final int getBlockOccurrences(int id) {
+            return blocks.count(id);
+        }
+    }
 
     public void lock() {
         lock.lock();
@@ -256,6 +302,15 @@ public class Chunk implements Externalizable {
     public void setChunkState(State chunkState) {
         Preconditions.checkNotNull(chunkState);
         this.chunkState = chunkState;
+    }
+    
+    public Statistics getStatistics(final boolean accurate) {
+        if (accurate) lock();
+        try {
+            return new Statistics(this);
+        } finally {
+            if (accurate) unlock();
+        }
     }
 
     public boolean isDirty() {

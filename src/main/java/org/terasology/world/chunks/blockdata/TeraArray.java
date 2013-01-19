@@ -189,6 +189,10 @@ public abstract class TeraArray implements Externalizable {
         return (x >= 0 && x < sizeX && y >= 0 && y < sizeY && z >= 0 && z < sizeZ);
     }
     
+    public final TeraArrayIterator iterator() {
+        return new TeraArrayIterator(this);
+    }
+    
     @Override
     public String toString() {
         return getClass().getName() + "(" + getSizeX() + ", " + getSizeY() + ", " + getSizeZ() + ", " + (isSparse() ? "sparse" : "dense") + ", " + getElementSizeInBits() + "bit, " + getEstimatedMemoryConsumptionInBytes() + "byte)";  
