@@ -2,7 +2,11 @@ package org.terasology.world.chunks.store;
 
 import org.terasology.TerasologyDevelopment;
 import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.ChunkStore;
+import org.terasology.world.chunks.storage.ChunkStore;
+import org.terasology.world.chunks.storage.ChunkStoreDeflate;
+import org.terasology.world.chunks.storage.ChunkStoreFileSystem;
+import org.terasology.world.chunks.storage.ChunkStoreGZip;
+import org.terasology.world.chunks.storage.ChunkStoreUncompressed;
 
 public final class ChunkCachePerformanceTest {
 

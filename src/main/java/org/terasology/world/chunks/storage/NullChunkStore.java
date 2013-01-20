@@ -1,5 +1,5 @@
 /*
- * Copyright 2012
+ * Copyright 2012 Benjamin Glatzel <benjamin.glatzel@me.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,36 @@
  * limitations under the License.
  */
 
-package org.terasology.world.chunks;
+package org.terasology.world.chunks.storage;
 
-import org.terasology.entitySystem.AbstractEvent;
 import org.terasology.math.Vector3i;
+import org.terasology.world.chunks.Chunk;
 
 /**
  * @author Immortius
  */
-public class ChunkReadyEvent extends AbstractEvent {
-    private Vector3i chunkPos = new Vector3i();
+public class NullChunkStore implements ChunkStore {
 
-    public ChunkReadyEvent(Vector3i chunkPos) {
-        this.chunkPos.set(chunkPos);
+    @Override
+    public Chunk get(Vector3i position) {
+        return null;
     }
 
-    public Vector3i getChunkPos() {
-        return chunkPos;
+    @Override
+    public float size() {
+        return 0;
+    }
+
+    @Override
+    public void dispose() {
+    }
+
+    @Override
+    public void put(Chunk c) {
+    }
+
+    @Override
+    public boolean contains(Vector3i position) {
+        return false;
     }
 }

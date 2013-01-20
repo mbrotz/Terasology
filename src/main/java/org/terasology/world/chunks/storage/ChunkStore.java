@@ -14,35 +14,22 @@
  * limitations under the License.
  */
 
-package org.terasology.world.localChunkProvider;
+package org.terasology.world.chunks.storage;
 
 import org.terasology.math.Vector3i;
-import org.terasology.world.chunks.ChunkProvider;
+import org.terasology.world.chunks.Chunk;
 
 /**
  * @author Immortius
  */
-public abstract class AbstractChunkTask implements ChunkTask {
-    private final Vector3i position;
-    private final ChunkProvider provider;
+public interface ChunkStore {
+    public Chunk get(Vector3i position);
 
-    public AbstractChunkTask(Vector3i position, ChunkProvider provider) {
-        this.position = new Vector3i(position);
-        this.provider = provider;
-    }
+    public void put(Chunk c);
 
-    @Override
-    public boolean isShutdownRequest() {
-        return false;
-    }
+    public boolean contains(Vector3i position);
 
-    @Override
-    public Vector3i getPosition() {
-        return position;
-    }
+    public float size();
 
-    @Override
-    public ChunkProvider getProvider() {
-        return provider;
-    }
+    void dispose();
 }

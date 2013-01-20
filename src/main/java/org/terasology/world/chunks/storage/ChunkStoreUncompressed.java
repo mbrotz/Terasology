@@ -13,38 +13,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.terasology.world.chunks.storage;
 
-package org.terasology.world.chunks.store;
+
+import java.util.concurrent.ConcurrentMap;
 
 import org.terasology.math.Vector3i;
 import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.ChunkStore;
 
-/**
- * @author Immortius
- */
-public class NullChunkStore implements ChunkStore {
+import com.google.common.collect.Maps;
 
-    @Override
-    public Chunk get(Vector3i position) {
-        return null;
+public class ChunkStoreUncompressed implements ChunkStore {
+    ConcurrentMap<Vector3i, Chunk> map = Maps.newConcurrentMap();
+    int _sizeInByte = 0;
+
+    public ChunkStoreUncompressed() {
+
     }
 
-    @Override
-    public float size() {
-        return 0;
+    public Chunk get(Vector3i id) {
+        return map.get(id);
     }
 
-    @Override
-    public void dispose() {
-    }
-
-    @Override
     public void put(Chunk c) {
+        map.put(c.getPos(), c);
     }
 
     @Override
     public boolean contains(Vector3i position) {
-        return false;
+        return map.containsKey(position);
+    }
+
+    public float size() {
+        return 0;
+    }
+
+    public void dispose() {
     }
 }

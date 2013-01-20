@@ -39,8 +39,8 @@ import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.ChunkReadyEvent;
 import org.terasology.world.chunks.ChunkType;
+import org.terasology.world.chunks.provider.ChunkReadyEvent;
 
 import com.google.common.collect.Queues;
 

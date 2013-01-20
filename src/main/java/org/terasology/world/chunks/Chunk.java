@@ -66,9 +66,8 @@ public class Chunk implements Externalizable {
     public static final byte MAX_LIQUID_DEPTH = 0x07;
 
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-
     private final ChunkType chunkType;
-    
+    private ChunkState chunkState = ChunkState.ADJACENCY_GENERATION_PENDING;    
     private final Vector3i pos = new Vector3i();
 
     private TeraArray blockData;
@@ -76,7 +75,6 @@ public class Chunk implements Externalizable {
     private TeraArray lightData;
     private TeraArray extraData;
 
-    private ChunkState chunkState = ChunkState.ADJACENCY_GENERATION_PENDING;
     private boolean dirty;
     private boolean animated;
     private AABB aabb;

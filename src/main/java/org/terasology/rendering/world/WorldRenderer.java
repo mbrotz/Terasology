@@ -98,13 +98,13 @@ import org.terasology.world.WorldTimeEvent;
 import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.ChunkProvider;
-import org.terasology.world.chunks.ChunkStore;
 import org.terasology.world.chunks.ChunkType;
-import org.terasology.world.chunks.LocalChunkProvider;
 import org.terasology.world.chunks.ChunkState;
-import org.terasology.world.chunks.store.ChunkStoreGZip;
-import org.terasology.world.chunks.store.ChunkStoreProtobuf;
+import org.terasology.world.chunks.provider.ChunkProvider;
+import org.terasology.world.chunks.provider.LocalChunkProvider;
+import org.terasology.world.chunks.storage.ChunkStore;
+import org.terasology.world.chunks.storage.ChunkStoreGZip;
+import org.terasology.world.chunks.storage.ChunkStoreProtobuf;
 import org.terasology.world.generator.core.ChunkGeneratorManager;
 
 import com.google.common.collect.Lists;
