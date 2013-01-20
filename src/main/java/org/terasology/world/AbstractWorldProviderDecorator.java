@@ -52,12 +52,12 @@ public class AbstractWorldProviderDecorator implements WorldProviderCore {
     }
 
     @Override
-    public WorldView getLocalView(Vector3i chunk) {
+    public ClassicWorldView getLocalView(Vector3i chunk) {
         return base.getLocalView(chunk);
     }
 
     @Override
-    public WorldView getWorldViewAround(Vector3i chunk) {
+    public ClassicWorldView getWorldViewAround(Vector3i chunk) {
         return base.getWorldViewAround(chunk);
     }
 

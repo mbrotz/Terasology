@@ -22,7 +22,7 @@ import org.terasology.world.BlockUpdate;
 import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.WorldInfo;
 import org.terasology.world.WorldProviderCore;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.liquid.LiquidData;
 
@@ -61,12 +61,12 @@ public class WorldProviderCoreStub implements WorldProviderCore {
     }
 
     @Override
-    public WorldView getLocalView(Vector3i chunk) {
+    public ClassicWorldView getLocalView(Vector3i chunk) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
     @Override
-    public WorldView getWorldViewAround(Vector3i chunk) {
+    public ClassicWorldView getWorldViewAround(Vector3i chunk) {
         return null;  //To change body of implemented methods use File | Settings | File Templates.
     }
 

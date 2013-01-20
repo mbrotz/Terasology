@@ -41,7 +41,7 @@ import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.performanceMonitor.PerformanceMonitor;
 import org.terasology.world.lighting.LightPropagator;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.generator.core.ChunkGeneratorManager;
 import org.terasology.world.localChunkProvider.AbstractChunkTask;
 import org.terasology.world.localChunkProvider.ChunkRequest;
@@ -353,7 +353,7 @@ public class LocalChunkProvider implements ChunkProvider {
             chunkTasksQueue.offer(new AbstractChunkTask(pos, this) {
                 @Override
                 public void enact() {
-                    WorldView view = WorldView.createLocalView(getPosition(), getProvider());
+                    ClassicWorldView view = ClassicWorldView.createLocalView(getPosition(), getProvider());
                     if (view == null) {
                         return;
                     }
@@ -429,7 +429,7 @@ public class LocalChunkProvider implements ChunkProvider {
             chunkTasksQueue.offer(new AbstractChunkTask(pos, this) {
                 @Override
                 public void enact() {
-                    WorldView worldView = WorldView.createLocalView(getPosition(), getProvider());
+                    ClassicWorldView worldView = ClassicWorldView.createLocalView(getPosition(), getProvider());
                     if (worldView == null) {
                         return;
                     }

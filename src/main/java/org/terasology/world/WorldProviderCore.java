@@ -54,13 +54,13 @@ public interface WorldProviderCore {
      * @param chunk
      * @return A world view centered on the desired chunk, with the surrounding chunks present.
      */
-    public WorldView getLocalView(Vector3i chunk);
+    public ClassicWorldView getLocalView(Vector3i chunk);
 
     /**
      * @param chunk
      * @return A world view of the chunks around the desired chunk, uncentered.
      */
-    public WorldView getWorldViewAround(Vector3i chunk);
+    public ClassicWorldView getWorldViewAround(Vector3i chunk);
 
 
     /**

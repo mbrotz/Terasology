@@ -106,13 +106,13 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
     }
 
     @Override
-    public WorldView getLocalView(Vector3i chunk) {
-        return WorldView.createLocalView(chunk, chunkProvider);
+    public ClassicWorldView getLocalView(Vector3i chunk) {
+        return ClassicWorldView.createLocalView(chunk, chunkProvider);
     }
 
     @Override
-    public WorldView getWorldViewAround(Vector3i chunk) {
-        return WorldView.createSubviewAroundChunk(chunk, chunkProvider);
+    public ClassicWorldView getWorldViewAround(Vector3i chunk) {
+        return ClassicWorldView.createSubviewAroundChunk(chunk, chunkProvider);
     }
 
     @Override
@@ -133,12 +133,12 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
     @Override
     public boolean setBlock(int x, int y, int z, Block type, Block oldType) {
         Vector3i blockPos = new Vector3i(x, y, z);
-        WorldView worldView;
+        ClassicWorldView worldView;
 
         if (LightingUtil.compareLightingPropagation(type, oldType) != PropagationComparison.IDENTICAL || type.getLuminance() != oldType.getLuminance()) {
-            worldView = WorldView.createSubviewAroundBlock(blockPos, Chunk.MAX_LIGHT + 1, chunkProvider);
+            worldView = ClassicWorldView.createSubviewAroundBlock(blockPos, Chunk.MAX_LIGHT + 1, chunkProvider);
         } else {
-            worldView = WorldView.createSubviewAroundBlock(blockPos, 1, chunkProvider);
+            worldView = ClassicWorldView.createSubviewAroundBlock(blockPos, 1, chunkProvider);
         }
         if (worldView != null) {
             worldView.lock();

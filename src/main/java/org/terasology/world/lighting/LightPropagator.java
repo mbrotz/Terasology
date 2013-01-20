@@ -25,7 +25,7 @@ import org.terasology.math.Diamond3iIterator;
 import org.terasology.math.Region3i;
 import org.terasology.math.Side;
 import org.terasology.math.Vector3i;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
@@ -38,9 +38,9 @@ import com.google.common.collect.Lists;
 public class LightPropagator {
     private static final Logger logger = LoggerFactory.getLogger(LightPropagator.class);
 
-    private WorldView worldView;
+    private ClassicWorldView worldView;
 
-    public LightPropagator(WorldView worldView) {
+    public LightPropagator(ClassicWorldView worldView) {
         this.worldView = worldView;
     }
 

@@ -22,7 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.terasology.math.Region3i;
 import org.terasology.math.Vector3i;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockUri;
 import org.terasology.world.block.family.SymmetricFamily;
@@ -34,7 +34,7 @@ import org.terasology.world.chunks.Chunk;
  */
 public class LiquidSimulationTest {
 
-    WorldView view;
+    ClassicWorldView view;
     Block air;
     Block dirt;
 
@@ -44,7 +44,7 @@ public class LiquidSimulationTest {
                 new Chunk(new Vector3i(-1,0,0)), new Chunk(new Vector3i(0,0,0)), new Chunk(new Vector3i(1,0,0)),
                 new Chunk(new Vector3i(-1,0,1)), new Chunk(new Vector3i(0,0,1)), new Chunk(new Vector3i(1,0,1))};
 
-        view = new WorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1,1,1));
+        view = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1,1,1));
 
         air = BlockManager.getInstance().getBlock((byte)0);
         dirt = new Block();

@@ -26,9 +26,34 @@ import org.terasology.world.chunks.ChunkProvider;
 import org.terasology.world.liquid.LiquidData;
 
 /**
+ * This class is deprecated in favor of the classes in package org.terasology.world.views!
+ * <p/>
+ * The following classes will have to be refactored so they don't use ClassicWorldView anymore:<br/>
+ *      #   src/main/java/org/terasology/rendering/primitives/ChunkTessellator.java<br/>
+ *      #   src/main/java/org/terasology/rendering/world/ChunkUpdateManager.java<br/>
+ *      #   src/main/java/org/terasology/rendering/world/WorldRenderer.java<br/>
+ *      #   src/main/java/org/terasology/world/AbstractWorldProviderDecorator.java<br/>
+ *      #   src/main/java/org/terasology/world/WorldProviderCore.java<br/>
+ *      #   src/main/java/org/terasology/world/WorldProviderCoreImpl.java<br/>
+ *      #   src/main/java/org/terasology/world/chunks/LocalChunkProvider.java<br/>
+ *      #   src/main/java/org/terasology/world/generator/SecondPassChunkGenerator.java<br/>
+ *      #   src/main/java/org/terasology/world/generator/core/ChunkGeneratorManager.java<br/>
+ *      #   src/main/java/org/terasology/world/generator/core/ChunkGeneratorManagerImpl.java<br/>
+ *      #   src/main/java/org/terasology/world/generator/core/ForestGenerator.java<br/>
+ *      #   src/main/java/org/terasology/world/generator/tree/TreeGenerator.java<br/>
+ *      #   src/main/java/org/terasology/world/generator/tree/TreeGeneratorCactus.java<br/>
+ *      #   src/main/java/org/terasology/world/generator/tree/TreeGeneratorLSystem.java<br/>
+ *      #   src/main/java/org/terasology/world/lighting/LightPropagator.java<br/>
+ *      #   src/main/java/org/terasology/world/liquid/LiquidSimulator.java<br/>
+ *      #   src/test/java/org/terasology/testUtil/WorldProviderCoreStub.java<br/>
+ *      #   src/test/java/org/terasology/world/LightPropagationTest.java<br/>
+ *      #   src/test/java/org/terasology/world/WorldViewTest.java<br/>
+ *      #   src/test/java/org/terasology/world/liquid/LiquidSimulationTest.java<br/>
+ * 
  * @author Immortius
  */
-public class WorldView {
+@Deprecated
+public class ClassicWorldView {
 
     private Vector3i offset;
     private Region3i chunkRegion;
@@ -39,22 +64,22 @@ public class WorldView {
     private Vector3i chunkSize;
     private Vector3i chunkFilterSize;
 
-    public static WorldView createLocalView(Vector3i pos, ChunkProvider chunkProvider) {
+    public static ClassicWorldView createLocalView(Vector3i pos, ChunkProvider chunkProvider) {
         Region3i region = Region3i.createFromCenterExtents(pos, new Vector3i(1, 0, 1));
         return createWorldView(region, Vector3i.one(), chunkProvider);
     }
 
-    public static WorldView createSubviewAroundBlock(Vector3i pos, int extent, ChunkProvider chunkProvider) {
+    public static ClassicWorldView createSubviewAroundBlock(Vector3i pos, int extent, ChunkProvider chunkProvider) {
         Region3i region = TeraMath.getChunkRegionAroundBlockPos(pos, extent);
         return createWorldView(region, new Vector3i(-region.min().x, 0, -region.min().z), chunkProvider);
     }
 
-    public static WorldView createSubviewAroundChunk(Vector3i chunkPos, ChunkProvider chunkProvider) {
+    public static ClassicWorldView createSubviewAroundChunk(Vector3i chunkPos, ChunkProvider chunkProvider) {
         Region3i region = Region3i.createFromCenterExtents(chunkPos, new Vector3i(1, 0, 1));
         return createWorldView(region, new Vector3i(-region.min().x, 0, -region.min().z), chunkProvider);
     }
 
-    public static WorldView createWorldView(Region3i region, Vector3i offset, ChunkProvider chunkProvider) {
+    public static ClassicWorldView createWorldView(Region3i region, Vector3i offset, ChunkProvider chunkProvider) {
         Chunk[] chunks = new Chunk[region.size().x * region.size().z];
         for (Vector3i chunkPos : region) {
             Chunk chunk = chunkProvider.getChunk(chunkPos);
@@ -64,10 +89,10 @@ public class WorldView {
             int index = (chunkPos.x - region.min().x) + region.size().x * (chunkPos.z - region.min().z);
             chunks[index] = chunk;
         }
-        return new WorldView(chunks, region, offset);
+        return new ClassicWorldView(chunks, region, offset);
     }
 
-    public WorldView(Chunk[] chunks, Region3i chunkRegion, Vector3i offset) {
+    public ClassicWorldView(Chunk[] chunks, Region3i chunkRegion, Vector3i offset) {
         this.chunkRegion = chunkRegion;
         this.chunks = chunks;
         this.offset = offset;

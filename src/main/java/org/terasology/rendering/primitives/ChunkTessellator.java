@@ -27,7 +27,7 @@ import org.terasology.math.Vector3i;
 import org.terasology.performanceMonitor.PerformanceMonitor;
 import org.terasology.world.MiniatureChunk;
 import org.terasology.world.WorldBiomeProvider;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockPart;
 import org.terasology.world.chunks.Chunk;
@@ -47,7 +47,7 @@ public final class ChunkTessellator {
         this.biomeProvider = biomeProvider;
     }
 
-    public ChunkMesh generateMesh(WorldView worldView, Vector3i chunkPos, int meshHeight, int verticalOffset) {
+    public ChunkMesh generateMesh(ClassicWorldView worldView, Vector3i chunkPos, int meshHeight, int verticalOffset) {
         PerformanceMonitor.startActivity("GenerateMesh");
         ChunkMesh mesh = new ChunkMesh();
 
@@ -81,7 +81,7 @@ public final class ChunkTessellator {
         ChunkMesh mesh = new ChunkMesh();
 
         MiniatureChunk[] chunks = { miniatureChunk };
-        WorldView localWorldView = new WorldView(chunks, Region3i.createFromCenterExtents(Vector3i.zero(), Vector3i.zero()), Vector3i.zero());
+        ClassicWorldView localWorldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(Vector3i.zero(), Vector3i.zero()), Vector3i.zero());
         localWorldView.setChunkSize(new Vector3i(MiniatureChunk.CHUNK_SIZE));
 
         for (int x = 0; x < MiniatureChunk.SIZE_X; x++) {
@@ -104,7 +104,7 @@ public final class ChunkTessellator {
         return mesh;
     }
 
-    private void generateOptimizedBuffers(WorldView worldView, ChunkMesh mesh) {
+    private void generateOptimizedBuffers(ClassicWorldView worldView, ChunkMesh mesh) {
         PerformanceMonitor.startActivity("OptimizeBuffers");
 
         for (int j = 0; j < mesh._vertexElements.length; j++) {
@@ -155,7 +155,7 @@ public final class ChunkTessellator {
         PerformanceMonitor.endActivity();
     }
 
-    private void calcLightingValuesForVertexPos(WorldView worldView, Vector3f vertexPos, float[] output, Vector3f normal) {
+    private void calcLightingValuesForVertexPos(ClassicWorldView worldView, Vector3f vertexPos, float[] output, Vector3f normal) {
         PerformanceMonitor.startActivity("calcLighting");
         float[] lights = new float[8];
         float[] blockLights = new float[8];
@@ -244,7 +244,7 @@ public final class ChunkTessellator {
         PerformanceMonitor.endActivity();
     }
 
-    private void generateBlockVertices(WorldView view, ChunkMesh mesh, int x, int y, int z, float temp, float hum) {
+    private void generateBlockVertices(ClassicWorldView view, ChunkMesh mesh, int x, int y, int z, float temp, float hum) {
         Block block = view.getBlock(x, y, z);
 
         /*

@@ -39,7 +39,7 @@ public class LightPropagationTest {
     private static final Vector3i WORLD_MIN = new Vector3i(-Chunk.SIZE_X, 0, -Chunk.SIZE_Z);
     private static final Vector3i WORLD_MAX = new Vector3i(2 * Chunk.SIZE_X - 1, Chunk.SIZE_Y - 1, 2 * Chunk.SIZE_Z - 1);
 
-    WorldView view;
+    ClassicWorldView view;
     LightPropagator propagator;
     Block air;
     Block dirt;
@@ -51,7 +51,7 @@ public class LightPropagationTest {
                 new Chunk(new Vector3i(-1, 0, 0)), new Chunk(new Vector3i(0, 0, 0)), new Chunk(new Vector3i(1, 0, 0)),
                 new Chunk(new Vector3i(-1, 0, 1)), new Chunk(new Vector3i(0, 0, 1)), new Chunk(new Vector3i(1, 0, 1))};
 
-        view = new WorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1, 1, 1));
+        view = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1, 1, 1));
         propagator = new LightPropagator(view);
 
         air = BlockManager.getInstance().getBlock((byte) 0);

@@ -95,7 +95,7 @@ import org.terasology.world.WorldProvider;
 import org.terasology.world.WorldProviderCoreImpl;
 import org.terasology.world.WorldProviderWrapper;
 import org.terasology.world.WorldTimeEvent;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkProvider;
@@ -948,7 +948,7 @@ public final class WorldRenderer {
                 complete = false;
                 continue;
             } else if (chunk.isDirty()) {
-                WorldView view = _worldProvider.getLocalView(chunk.getPos());
+                ClassicWorldView view = _worldProvider.getLocalView(chunk.getPos());
                 if (view == null) {
                     continue;
                 }
