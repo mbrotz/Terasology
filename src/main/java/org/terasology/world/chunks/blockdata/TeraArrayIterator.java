@@ -85,6 +85,10 @@ public final class TeraArrayIterator implements TIntIntIterator {
         return z;
     }
     
+    public int size() {
+        return sizeXYZ;
+    }
+    
     public Vector3i pos() {
         return new Vector3i(x, y, z);
     }
