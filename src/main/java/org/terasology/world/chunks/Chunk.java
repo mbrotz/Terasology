@@ -479,7 +479,7 @@ public class Chunk implements Externalizable {
         return aabb;
     }
 
-    // TODO: Protobuf instead???
+    @Deprecated
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(pos.x);
         out.writeInt(pos.y);
@@ -491,6 +491,7 @@ public class Chunk implements Externalizable {
         out.writeObject(extraData);
     }
 
+    @Deprecated
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         pos.x = in.readInt();
         pos.y = in.readInt();
