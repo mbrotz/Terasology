@@ -23,6 +23,7 @@ import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkProvider;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.liquid.LiquidData;
 
 /**
@@ -96,7 +97,7 @@ public class ClassicWorldView {
         this.chunkRegion = chunkRegion;
         this.chunks = chunks;
         this.offset = offset;
-        setChunkSize(new Vector3i(Chunk.SIZE_X, Chunk.SIZE_Y, Chunk.SIZE_Z));
+        setChunkSize(new Vector3i(ChunkType.Default.sizeX, ChunkType.Default.sizeY, ChunkType.Default.sizeZ));
     }
 
     public Region3i getChunkRegion() {
@@ -274,6 +275,6 @@ public class ClassicWorldView {
     }
 
     public Vector3i toWorldPos(Vector3i localPos) {
-        return new Vector3i(localPos.x + (offset.x + chunkRegion.min().x) * Chunk.SIZE_X, localPos.y, localPos.z + (offset.z + chunkRegion.min().z) * Chunk.SIZE_Z);
+        return new Vector3i(localPos.x + (offset.x + chunkRegion.min().x) * ChunkType.Default.sizeX, localPos.y, localPos.z + (offset.z + chunkRegion.min().z) * ChunkType.Default.sizeZ);
     }
 }

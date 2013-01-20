@@ -29,6 +29,7 @@ import org.terasology.world.block.BlockUri;
 import org.terasology.world.block.family.SymmetricFamily;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.lighting.InternalLightProcessor;
 
 /**
@@ -59,7 +60,7 @@ public class InternalLightGeneratorTest {
         Chunk chunk = new Chunk(0,0,0);
         InternalLightProcessor.generateInternalLighting(chunk);
 
-        for (Vector3i pos : Region3i.createFromMinAndSize(Vector3i.zero(), new Vector3i(Chunk.SIZE_X, Chunk.SIZE_Y, Chunk.SIZE_Z))) {
+        for (Vector3i pos : Region3i.createFromMinAndSize(Vector3i.zero(), new Vector3i(ChunkType.Default.sizeX, ChunkType.Default.sizeY, ChunkType.Default.sizeZ))) {
             assertEquals(Chunk.MAX_LIGHT, chunk.getSunlight(pos));
         }
     }
@@ -79,13 +80,13 @@ public class InternalLightGeneratorTest {
     @Test
     public void pinholeSunlightPropagation() {
         Chunk chunk = new Chunk(0,0,0);
-        for (Vector3i pos : Region3i.createFromMinAndSize(new Vector3i(0, Chunk.SIZE_Y - 1,0), new Vector3i(Chunk.SIZE_X,1, Chunk.SIZE_Z))) {
+        for (Vector3i pos : Region3i.createFromMinAndSize(new Vector3i(0, ChunkType.Default.sizeY - 1,0), new Vector3i(ChunkType.Default.sizeX,1, ChunkType.Default.sizeZ))) {
             chunk.setBlock(pos, solidBlock);
         }
-        chunk.setBlock(8, Chunk.SIZE_Y - 1, 8, airBlock);
+        chunk.setBlock(8, ChunkType.Default.sizeY - 1, 8, airBlock);
         InternalLightProcessor.generateInternalLighting(chunk);
 
-        for (Vector3i pos : Region3i.createFromMinAndSize(Vector3i.zero(), new Vector3i(Chunk.SIZE_X, Chunk.SIZE_Y - 1, Chunk.SIZE_Z))) {
+        for (Vector3i pos : Region3i.createFromMinAndSize(Vector3i.zero(), new Vector3i(ChunkType.Default.sizeX, ChunkType.Default.sizeY - 1, ChunkType.Default.sizeZ))) {
             int dist = TeraMath.fastAbs(pos.x - 8) + TeraMath.fastAbs(pos.z - 8);
             int expected = Math.max(Chunk.MAX_LIGHT - dist, 0);
             assertEquals("Incorrect at " + pos, expected, chunk.getSunlight(pos));

@@ -29,6 +29,7 @@ import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 import com.google.common.collect.Lists;
 
@@ -50,17 +51,17 @@ public class LightPropagator {
      * This expects the light propagator to be set up with a 3x3 world view offset so the center chunk is accessed as(0,0,0)
      */
     public void propagateOutOfTargetChunk() {
-        int maxX = Chunk.SIZE_X - 1;
-        int maxZ = Chunk.SIZE_Z - 1;
+        int maxX = ChunkType.Default.sizeX - 1;
+        int maxZ = ChunkType.Default.sizeZ - 1;
         // Iterate over the blocks on the horizontal sides
-        for (int y = 0; y < Chunk.SIZE_Y; y++) {
-            for (int x = 0; x < Chunk.SIZE_X; x++) {
+        for (int y = 0; y < ChunkType.Default.sizeY; y++) {
+            for (int x = 0; x < ChunkType.Default.sizeX; x++) {
                 propagateSunlightFrom(x, y, 0, Side.FRONT);
                 propagateSunlightFrom(x, y, maxZ, Side.BACK);
                 propagateLightFrom(x, y, 0, Side.FRONT);
                 propagateLightFrom(x, y, maxZ, Side.BACK);
             }
-            for (int z = 0; z < Chunk.SIZE_Z; z++) {
+            for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
                 propagateSunlightFrom(0, y, z, Side.LEFT);
                 propagateSunlightFrom(maxX, y, z, Side.RIGHT);
                 propagateLightFrom(0, y, z, Side.LEFT);
@@ -140,7 +141,7 @@ public class LightPropagator {
 
     private byte pullSunlight(int x, int y, int z, Block type) {
         byte light = 0;
-        if (y == Chunk.SIZE_Y - 1 && LightingUtil.canSpreadLightInto(type, Side.TOP)) {
+        if (y == ChunkType.Default.sizeY - 1 && LightingUtil.canSpreadLightInto(type, Side.TOP)) {
             light = Chunk.MAX_LIGHT;
         } else {
             for (Side side : Side.values()) {
@@ -204,7 +205,7 @@ public class LightPropagator {
             if (lightLevel < Chunk.MAX_LIGHT) {
                 for (Vector3i pos : currentWave) {
                     // Move sunlight up
-                    if (pos.y < Chunk.SIZE_Y - 2) {
+                    if (pos.y < ChunkType.Default.sizeY - 2) {
                         Vector3i adjPos = new Vector3i(pos.x, pos.y + 1, pos.z);
                         Block block = worldView.getBlock(pos);
                         Block adjBlock = worldView.getBlock(adjPos);
@@ -280,7 +281,7 @@ public class LightPropagator {
                 for (Side side : Side.values()) {
                     Vector3i adjPos = new Vector3i(pos);
                     adjPos.add(side.getVector3i());
-                    if (adjPos.y < 0 || adjPos.y >= Chunk.SIZE_Y) {
+                    if (adjPos.y < 0 || adjPos.y >= ChunkType.Default.sizeY) {
                         continue;
                     }
 
@@ -306,7 +307,7 @@ public class LightPropagator {
         if (oldSunlight == Chunk.MAX_LIGHT) {
             worldView.setSunlight(x, y, z, (byte) 0);
             fullRecalculateSunlightAround(x, y, z);
-            return Region3i.createFromMinAndSize(new Vector3i(x - Chunk.MAX_LIGHT + 1, 0, z - Chunk.MAX_LIGHT + 1), new Vector3i(2 * Chunk.MAX_LIGHT - 1, Chunk.SIZE_Y, 2 * Chunk.MAX_LIGHT - 1));
+            return Region3i.createFromMinAndSize(new Vector3i(x - Chunk.MAX_LIGHT + 1, 0, z - Chunk.MAX_LIGHT + 1), new Vector3i(2 * Chunk.MAX_LIGHT - 1, ChunkType.Default.sizeY, 2 * Chunk.MAX_LIGHT - 1));
         } else if (oldSunlight > 1) {
             localRecalculateSunlightAround(x, y, z, oldSunlight);
             return Region3i.createFromCenterExtents(new Vector3i(x, y, z), oldSunlight - 1);
@@ -364,7 +365,7 @@ public class LightPropagator {
     }
 
     private void fullRecalculateSunlightAround(int blockX, int blockY, int blockZ) {
-        int top = Math.min(Chunk.SIZE_Y - 2, blockY + Chunk.MAX_LIGHT - 2);
+        int top = Math.min(ChunkType.Default.sizeY - 2, blockY + Chunk.MAX_LIGHT - 2);
         Region3i region = Region3i.createFromMinMax(new Vector3i(blockX - Chunk.MAX_LIGHT + 1, 0, blockZ - Chunk.MAX_LIGHT + 1), new Vector3i(blockX + Chunk.MAX_LIGHT - 1, top, blockZ + Chunk.MAX_LIGHT - 1));
         short[] tops = new short[region.size().x * region.size().z];
 

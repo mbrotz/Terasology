@@ -25,6 +25,7 @@ import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.SecondPassChunkGenerator;
 import org.terasology.world.generator.tree.TreeGenerator;
 
@@ -57,11 +58,11 @@ public class ForestGenerator implements SecondPassChunkGenerator {
     @Override
     public void postProcessChunk(Vector3i pos, ClassicWorldView view) {
         FastRandom random = new FastRandom(seed.hashCode() ^ (pos.x + 39L * (pos.y + 39L * pos.z)));
-        for (int y = 32; y < Chunk.SIZE_Y; y++) {
-            for (int x = 4; x < Chunk.SIZE_X; x += 4) {
-                for (int z = 4; z < Chunk.SIZE_Z; z += 4) {
+        for (int y = 32; y < ChunkType.Default.sizeY; y++) {
+            for (int x = 4; x < ChunkType.Default.sizeX; x += 4) {
+                for (int z = 4; z < ChunkType.Default.sizeZ; z += 4) {
                     Vector3i worldPos = new Vector3i(pos);
-                    worldPos.mult(new Vector3i(Chunk.SIZE_X, Chunk.SIZE_Y, Chunk.SIZE_Z));
+                    worldPos.mult(new Vector3i(ChunkType.Default.sizeX, ChunkType.Default.sizeY, ChunkType.Default.sizeZ));
                     worldPos.add(x, y, z);
                     WorldBiomeProvider.Biome biome = biomeProvider.getBiomeAt(worldPos.x, worldPos.z);
 
@@ -100,7 +101,7 @@ public class ForestGenerator implements SecondPassChunkGenerator {
      * @param z       Position on the z-axis
      */
     private void generateTree(ClassicWorldView view, TreeGenerator treeGen, int x, int y, int z, FastRandom random) {
-        for (int checkY = y + 1; checkY < Chunk.SIZE_Y; ++checkY) {
+        for (int checkY = y + 1; checkY < ChunkType.Default.sizeY; ++checkY) {
             if (!view.getBlock(x, checkY, z).isTranslucent()) {
                 return;
             }

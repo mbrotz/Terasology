@@ -26,6 +26,7 @@ import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.ChunkGenerator;
 import org.terasology.world.liquid.LiquidData;
 import org.terasology.world.liquid.LiquidType;
@@ -75,14 +76,14 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
 
     @Override
     public void generateChunk(Chunk c) {
-        double[][][] densityMap = new double[Chunk.SIZE_X + 1][Chunk.SIZE_Y + 1][Chunk.SIZE_Z + 1];
+        double[][][] densityMap = new double[ChunkType.Default.sizeX + 1][ChunkType.Default.sizeY + 1][ChunkType.Default.sizeZ + 1];
 
         /*
          * Create the density map at a lower sample rate.
          */
-        for (int x = 0; x <= Chunk.SIZE_X; x += SAMPLE_RATE_3D_HOR) {
-            for (int z = 0; z <= Chunk.SIZE_Z; z += SAMPLE_RATE_3D_HOR) {
-                for (int y = 0; y <= Chunk.SIZE_Y; y += SAMPLE_RATE_3D_VERT) {
+        for (int x = 0; x <= ChunkType.Default.sizeX; x += SAMPLE_RATE_3D_HOR) {
+            for (int z = 0; z <= ChunkType.Default.sizeZ; z += SAMPLE_RATE_3D_HOR) {
+                for (int y = 0; y <= ChunkType.Default.sizeY; y += SAMPLE_RATE_3D_VERT) {
                     densityMap[x][y][z] = calcDensity(c.getBlockWorldPosX(x), y, c.getBlockWorldPosZ(z));
                 }
             }
@@ -96,12 +97,12 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
         /*
          * Generate the chunk from the density map.
          */
-        for (int x = 0; x < Chunk.SIZE_X; x++) {
-            for (int z = 0; z < Chunk.SIZE_Z; z++) {
+        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
+            for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
                 WorldBiomeProvider.Biome type = biomeProvider.getBiomeAt(c.getBlockWorldPosX(x), c.getBlockWorldPosZ(z));
                 int firstBlockHeight = -1;
 
-                for (int y = Chunk.SIZE_Y-1; y >= 0; y--) {
+                for (int y = ChunkType.Default.sizeY-1; y >= 0; y--) {
 
                     if (y == 0) { // The very deepest layer of the world is an indestructible mantle
                         c.setBlock(x, y, z, mantle);
@@ -212,9 +213,9 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
     }
 
     private void triLerpDensityMap(double[][][] densityMap) {
-        for (int x = 0; x < Chunk.SIZE_X; x++) {
-            for (int y = 0; y < Chunk.SIZE_Y; y++) {
-                for (int z = 0; z < Chunk.SIZE_Z; z++) {
+        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
+            for (int y = 0; y < ChunkType.Default.sizeY; y++) {
+                for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
                     if (!(x % SAMPLE_RATE_3D_HOR == 0 && y % SAMPLE_RATE_3D_VERT == 0 && z % SAMPLE_RATE_3D_HOR == 0)) {
                         int offsetX = (x / SAMPLE_RATE_3D_HOR) * SAMPLE_RATE_3D_HOR;
                         int offsetY = (y / SAMPLE_RATE_3D_VERT) * SAMPLE_RATE_3D_VERT;
@@ -240,8 +241,8 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
         double densityMountains = calcMountainDensity(x, y, z) * mIntens;
         double densityHills = calcHillDensity(x, y, z) * (1.0 - mIntens);
 
-        int plateauArea = (int) (Chunk.SIZE_Y * 0.10);
-        double flatten = TeraMath.clamp(((Chunk.SIZE_Y - 16) - y) / plateauArea);
+        int plateauArea = (int) (ChunkType.Default.sizeY * 0.10);
+        double flatten = TeraMath.clamp(((ChunkType.Default.sizeY - 16) - y) / plateauArea);
 
         return -y + (((32.0 + height * 32.0) * TeraMath.clamp(river + 0.25) * TeraMath.clamp(ocean + 0.25)) + densityMountains * 1024.0 + densityHills * 128.0) * flatten;
     }

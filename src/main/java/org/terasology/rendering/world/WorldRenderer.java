@@ -100,7 +100,9 @@ import org.terasology.world.block.Block;
 import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkProvider;
 import org.terasology.world.chunks.ChunkStore;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.chunks.LocalChunkProvider;
+import org.terasology.world.chunks.ChunkState;
 import org.terasology.world.chunks.store.ChunkStoreGZip;
 import org.terasology.world.chunks.store.ChunkStoreProtobuf;
 import org.terasology.world.generator.core.ChunkGeneratorManager;
@@ -285,7 +287,7 @@ public final class WorldRenderer {
                 for (int x = -(viewingDistance / 2); x < viewingDistance / 2; x++) {
                     for (int z = -(viewingDistance / 2); z < viewingDistance / 2; z++) {
                         Chunk c = _chunkProvider.getChunk(newChunkPosX + x, 0, newChunkPosZ + z);
-                        if (c != null && c.getChunkState() == Chunk.State.COMPLETE && _worldProvider.getLocalView(c.getPos()) != null) {
+                        if (c != null && c.getChunkState() == ChunkState.COMPLETE && _worldProvider.getLocalView(c.getPos()) != null) {
                             _chunksInProximity.add(c);
                         } else {
                             _pendingChunks = true;
@@ -317,7 +319,7 @@ public final class WorldRenderer {
                     for (int x = r.minX(); x < r.maxX(); ++x) {
                         for (int y = r.minY(); y < r.maxY(); ++y) {
                             Chunk c = _chunkProvider.getChunk(x, 0, y);
-                            if (c != null && c.getChunkState() == Chunk.State.COMPLETE && _worldProvider.getLocalView(c.getPos()) != null) {
+                            if (c != null && c.getChunkState() == ChunkState.COMPLETE && _worldProvider.getLocalView(c.getPos()) != null) {
                                 _chunksInProximity.add(c);
                             } else {
                                 _pendingChunks = true;
@@ -359,7 +361,7 @@ public final class WorldRenderer {
         }
 
         private float distanceToCamera(Chunk chunk) {
-            Vector3f result = new Vector3f((chunk.getPos().x + 0.5f) * Chunk.SIZE_X, 0, (chunk.getPos().z + 0.5f) * Chunk.SIZE_Z);
+            Vector3f result = new Vector3f((chunk.getPos().x + 0.5f) * ChunkType.Default.sizeX, 0, (chunk.getPos().z + 0.5f) * ChunkType.Default.sizeZ);
 
             Vector3f cameraPos = CoreRegistry.get(WorldRenderer.class).getActiveCamera().getPosition();
             result.x -= cameraPos.x;
@@ -717,17 +719,17 @@ public final class WorldRenderer {
 
     private void renderChunk(Chunk chunk, ChunkMesh.RENDER_PHASE phase, Camera camera) {
 
-        if (chunk.getChunkState() == Chunk.State.COMPLETE && chunk.getMesh() != null) {
+        if (chunk.getChunkState() == ChunkState.COMPLETE && chunk.getMesh() != null) {
             ShaderProgram shader = ShaderManager.getInstance().getShaderProgram("chunk");
             // Transfer the world offset of the chunk to the shader for various effects
-            shader.setFloat3("chunkOffset", (float) (chunk.getPos().x * Chunk.SIZE_X), (float) (chunk.getPos().y * Chunk.SIZE_Y), (float) (chunk.getPos().z * Chunk.SIZE_Z));
+            shader.setFloat3("chunkOffset", (float) (chunk.getPos().x * ChunkType.Default.sizeX), (float) (chunk.getPos().y * ChunkType.Default.sizeY), (float) (chunk.getPos().z * ChunkType.Default.sizeZ));
             shader.setFloat("animated", chunk.getAnimated() ? 1.0f: 0.0f);
             shader.setFloat("clipHeight", camera.getClipHeight());
 
             GL11.glPushMatrix();
 
             Vector3f cameraPosition = camera.getPosition();
-            GL11.glTranslated(chunk.getPos().x * Chunk.SIZE_X - cameraPosition.x, chunk.getPos().y * Chunk.SIZE_Y - cameraPosition.y, chunk.getPos().z * Chunk.SIZE_Z - cameraPosition.z);
+            GL11.glTranslated(chunk.getPos().x * ChunkType.Default.sizeX - cameraPosition.x, chunk.getPos().y * ChunkType.Default.sizeY - cameraPosition.y, chunk.getPos().z * ChunkType.Default.sizeZ - cameraPosition.z);
 
             for (int i = 0; i < VERTICAL_SEGMENTS; i++) {
                 if (!chunk.getMesh()[i].isEmpty()) {
@@ -852,7 +854,7 @@ public final class WorldRenderer {
      * @return The maximum height
      */
     public final int maxHeightAt(int x, int z) {
-        for (int y = Chunk.SIZE_Y - 1; y >= 0; y--) {
+        for (int y = ChunkType.Default.sizeY - 1; y >= 0; y--) {
             if (_worldProvider.getBlock(x, y, z).getId() != 0x0)
                 return y;
         }
@@ -866,7 +868,7 @@ public final class WorldRenderer {
      * @return The player offset on the x-axis
      */
     private int calcCamChunkOffsetX() {
-        return (int) (getActiveCamera().getPosition().x / Chunk.SIZE_X);
+        return (int) (getActiveCamera().getPosition().x / ChunkType.Default.sizeX);
     }
 
     /**
@@ -875,7 +877,7 @@ public final class WorldRenderer {
      * @return The player offset on the z-axis
      */
     private int calcCamChunkOffsetZ() {
-        return (int) (getActiveCamera().getPosition().z / Chunk.SIZE_Z);
+        return (int) (getActiveCamera().getPosition().z / ChunkType.Default.sizeZ);
     }
 
     /**
@@ -944,7 +946,7 @@ public final class WorldRenderer {
         _chunkProvider.update();
         for (Vector3i pos : Region3i.createFromCenterExtents(new Vector3i(newChunkPosX, 0, newChunkPosZ), new Vector3i(viewingDistance / 2, 0, viewingDistance / 2))) {
             Chunk chunk = _chunkProvider.getChunk(pos);
-            if (chunk == null || chunk.getChunkState() != Chunk.State.COMPLETE) {
+            if (chunk == null || chunk.getChunkState() != ChunkState.COMPLETE) {
                 complete = false;
                 continue;
             } else if (chunk.isDirty()) {
@@ -956,7 +958,7 @@ public final class WorldRenderer {
 
                 ChunkMesh[] newMeshes = new ChunkMesh[VERTICAL_SEGMENTS];
                 for (int seg = 0; seg < VERTICAL_SEGMENTS; seg++) {
-                    newMeshes[seg] = _chunkTesselator.generateMesh(view, chunk.getPos(), Chunk.SIZE_Y / VERTICAL_SEGMENTS, seg * (Chunk.SIZE_Y / VERTICAL_SEGMENTS));
+                    newMeshes[seg] = _chunkTesselator.generateMesh(view, chunk.getPos(), ChunkType.Default.sizeY / VERTICAL_SEGMENTS, seg * (ChunkType.Default.sizeY / VERTICAL_SEGMENTS));
                 }
 
                 chunk.setPendingMesh(newMeshes);

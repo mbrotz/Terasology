@@ -30,8 +30,9 @@ import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.rendering.world.WorldRenderer;
 import org.terasology.world.block.management.BlockManager;
-import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkProvider;
+import org.terasology.world.chunks.ChunkType;
+import org.terasology.world.chunks.ChunkState;
 
 import javax.vecmath.Vector3f;
 import java.util.Iterator;
@@ -57,7 +58,7 @@ public class PrepareLocalWorld implements LoadProcess {
 
     @Override
     public boolean step() {
-        while (chunkProvider.getChunk(targetPos) == null || chunkProvider.getChunk(targetPos).getChunkState() != Chunk.State.COMPLETE) {
+        while (chunkProvider.getChunk(targetPos) == null || chunkProvider.getChunk(targetPos).getChunkState() != ChunkState.COMPLETE) {
             return false;
         }
 
@@ -77,7 +78,7 @@ public class PrepareLocalWorld implements LoadProcess {
         spawningPlayer = !iterator.hasNext();
         if (spawningPlayer) {
             spawnZoneEntity = entityManager.create();
-            spawnZoneEntity.addComponent(new LocationComponent(new Vector3f(Chunk.SIZE_X / 2, Chunk.SIZE_Y / 2, Chunk.SIZE_Z / 2)));
+            spawnZoneEntity.addComponent(new LocationComponent(new Vector3f(ChunkType.Default.sizeX / 2, ChunkType.Default.sizeY / 2, ChunkType.Default.sizeZ / 2)));
             worldRenderer.getChunkProvider().addRegionEntity(spawnZoneEntity, 4);
             targetPos = Vector3i.zero();
         } else {
@@ -89,7 +90,7 @@ public class PrepareLocalWorld implements LoadProcess {
     }
 
     private void spawnPlayer() {
-        Vector3i spawnPoint = new Vector3i(Chunk.SIZE_X / 2, Chunk.SIZE_Y, Chunk.SIZE_Z / 2);
+        Vector3i spawnPoint = new Vector3i(ChunkType.Default.sizeX / 2, ChunkType.Default.sizeY / 2, ChunkType.Default.sizeZ / 2);
         while (worldRenderer.getWorldProvider().getBlock(spawnPoint) == BlockManager.getInstance().getAir() && spawnPoint.y > 0) {
             spawnPoint.y--;
         }

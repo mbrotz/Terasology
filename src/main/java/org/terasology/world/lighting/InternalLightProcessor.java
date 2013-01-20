@@ -20,6 +20,7 @@ import org.terasology.math.Side;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * For doing an initial lighting sweep during chunk generation - bound to the chunk and assumed blank slate
@@ -28,13 +29,17 @@ import org.terasology.world.chunks.Chunk;
 public class InternalLightProcessor {
 
     public static void generateInternalLighting(Chunk chunk) {
-        int top = Chunk.SIZE_Y - 1;
+        final int SIZE_X = ChunkType.Default.sizeX;
+        final int SIZE_Y = ChunkType.Default.sizeY;
+        final int SIZE_Z = ChunkType.Default.sizeZ;
+        
+        int top = SIZE_Y - 1;
 
-        short[] tops = new short[Chunk.SIZE_X * Chunk.SIZE_Z];
+        short[] tops = new short[SIZE_X * SIZE_Z];
 
         // Tunnel light down
-        for (int x = 0; x < Chunk.SIZE_X; x++) {
-            for (int z = 0; z < Chunk.SIZE_Z; z++) {
+        for (int x = 0; x < SIZE_X; x++) {
+            for (int z = 0; z < SIZE_Z; z++) {
                 Block lastBlock = BlockManager.getInstance().getAir();
                 int y = top;
                 for (; y >= 0; y--) {
@@ -46,22 +51,22 @@ public class InternalLightProcessor {
                         break;
                     }
                 }
-                tops[x + Chunk.SIZE_X * z] = (short) y;
+                tops[x + SIZE_X * z] = (short) y;
             }
         }
 
-        for (int x = 0; x < Chunk.SIZE_X; x++) {
-            for (int z = 0; z < Chunk.SIZE_Z; z++) {
-                if (tops[x + Chunk.SIZE_X * z] < top) {
-                    Block block = chunk.getBlock(x, tops[x + Chunk.SIZE_X * z] + 1, z);
-                    spreadSunlightInternal(chunk, x, tops[x + Chunk.SIZE_X * z] + 1, z, block);
+        for (int x = 0; x < SIZE_X; x++) {
+            for (int z = 0; z < SIZE_Z; z++) {
+                if (tops[x + SIZE_X * z] < top) {
+                    Block block = chunk.getBlock(x, tops[x + SIZE_X * z] + 1, z);
+                    spreadSunlightInternal(chunk, x, tops[x + SIZE_X * z] + 1, z, block);
                 }
                 for (int y = top; y >= 0; y--) {
                     Block block = chunk.getBlock(x, y, z);
-                    if (y > tops[x + Chunk.SIZE_X * z] && ((x > 0 && tops[(x - 1) + Chunk.SIZE_X * z] >= y) ||
-                            (x < Chunk.SIZE_X - 1 && tops[(x + 1) + Chunk.SIZE_X * z] >= y) ||
-                            (z > 0 && tops[x + Chunk.SIZE_X * (z - 1)] >= y) ||
-                            (z < Chunk.SIZE_Z - 1 && tops[x + Chunk.SIZE_X * (z + 1)] >= y))) {
+                    if (y > tops[x + SIZE_X * z] && ((x > 0 && tops[(x - 1) + SIZE_X * z] >= y) ||
+                            (x < SIZE_X - 1 && tops[(x + 1) + SIZE_X * z] >= y) ||
+                            (z > 0 && tops[x + SIZE_X * (z - 1)] >= y) ||
+                            (z < SIZE_Z - 1 && tops[x + SIZE_X * (z + 1)] >= y))) {
                         spreadSunlightInternal(chunk, x, y, z, block);
                     }
                     if (block.getLuminance() > 0) {
@@ -104,7 +109,7 @@ public class InternalLightProcessor {
             }
         }
 
-        if (y < Chunk.SIZE_Y && lightValue < Chunk.MAX_LIGHT && LightingUtil.canSpreadLightOutOf(block, Side.TOP)) {
+        if (y < ChunkType.Default.sizeY && lightValue < Chunk.MAX_LIGHT && LightingUtil.canSpreadLightOutOf(block, Side.TOP)) {
             Block adjBlock = chunk.getBlock(x, y + 1, z);
             if (chunk.getSunlight(x, y + 1, z) < lightValue - 1 && LightingUtil.canSpreadLightInto(adjBlock, Side.BOTTOM)) {
                 chunk.setSunlight(x, y + 1, z, (byte) (lightValue - 1));

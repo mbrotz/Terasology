@@ -22,7 +22,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  *
@@ -99,9 +99,9 @@ public class IntMathTest
     @Test
     public void testChunkPosX() {
         assertEquals(0, TeraMath.calcChunkPosX(1));
-        assertEquals(1, TeraMath.calcChunkPosX(Chunk.SIZE_X));
+        assertEquals(1, TeraMath.calcChunkPosX(ChunkType.Default.sizeX));
         assertEquals(-1, TeraMath.calcChunkPosX(-1));
-        assertEquals(-2, TeraMath.calcChunkPosX(-Chunk.SIZE_X - 1));
+        assertEquals(-2, TeraMath.calcChunkPosX(-ChunkType.Default.sizeX - 1));
     }
 
 }

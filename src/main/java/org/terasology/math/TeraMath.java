@@ -24,6 +24,7 @@ import javax.vecmath.Vector3f;
 
 import org.lwjgl.BufferUtils;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * Collection of math functions.
@@ -215,7 +216,7 @@ public final class TeraMath {
     }
 
     public static int calcChunkPosX(int x) {
-        return calcChunkPosX(x, Chunk.POWER_X);
+        return calcChunkPosX(x, ChunkType.Default.powerX);
     }
 
     /**
@@ -240,7 +241,7 @@ public final class TeraMath {
     }
 
     public static int calcChunkPosZ(int z) {
-        return calcChunkPosZ(z, Chunk.POWER_Z);
+        return calcChunkPosZ(z, ChunkType.Default.powerZ);
     }
 
     public static Vector3i calcChunkPos(Vector3i pos, Vector3i chunkPower) {
@@ -252,7 +253,7 @@ public final class TeraMath {
     }
 
     public static Vector3i calcChunkPos(int x, int y, int z) {
-        return calcChunkPos(x, y, z, Chunk.CHUNK_POWER);
+        return calcChunkPos(x, y, z, ChunkType.Default.getChunkPower());
     }
 
     public static Vector3i calcChunkPos(int x, int y, int z, Vector3i chunkPower) {
@@ -271,7 +272,7 @@ public final class TeraMath {
 
 
     public static int calcBlockPosX(int blockX) {
-        return calcBlockPosX(blockX, Chunk.INNER_CHUNK_POS_FILTER_X);
+        return calcBlockPosX(blockX, ChunkType.Default.innerChunkPosFilterX);
     }
 
     public static int calcBlockPosY(int blockY) {
@@ -289,11 +290,11 @@ public final class TeraMath {
     }
 
     public static int calcBlockPosZ(int blockZ) {
-        return calcBlockPosZ(blockZ, Chunk.INNER_CHUNK_POS_FILTER_Z);
+        return calcBlockPosZ(blockZ, ChunkType.Default.innerChunkPosFilterZ);
     }
 
     public static Vector3i calcBlockPos(int x, int y, int z) {
-        return calcBlockPos(x,y,z, Chunk.INNER_CHUNK_POS_FILTER);
+        return calcBlockPos(x,y,z, ChunkType.Default.getInnerChunkPosFilter());
     }
 
     public static Vector3i calcBlockPos(int x, int y, int z, Vector3i chunkFilterSize) {

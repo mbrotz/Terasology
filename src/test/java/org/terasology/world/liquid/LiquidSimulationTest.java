@@ -28,6 +28,7 @@ import org.terasology.world.block.BlockUri;
 import org.terasology.world.block.family.SymmetricFamily;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * @author Immortius
@@ -53,8 +54,8 @@ public class LiquidSimulationTest {
         dirt.setId((byte) 1);
         BlockManager.getInstance().addBlockFamily(new SymmetricFamily(dirt.getURI(), dirt));
 
-        for (int x = -Chunk.SIZE_X + 1; x < 2 * Chunk.SIZE_X; ++x) {
-            for (int z = -Chunk.SIZE_Z + 1; z < 2 * Chunk.SIZE_Z; ++z) {
+        for (int x = -ChunkType.Default.sizeX + 1; x < 2 * ChunkType.Default.sizeX; ++x) {
+            for (int z = -ChunkType.Default.sizeZ + 1; z < 2 * ChunkType.Default.sizeZ; ++z) {
                 view.setBlock(x, 0, z, dirt, air);
             }
         }

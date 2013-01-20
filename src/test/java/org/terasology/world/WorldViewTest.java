@@ -27,6 +27,7 @@ import org.terasology.world.block.BlockUri;
 import org.terasology.world.block.family.SymmetricFamily;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * @author Immortius
@@ -117,6 +118,6 @@ public class WorldViewTest {
                 new Chunk(new Vector3i(0,0,2)), new Chunk(new Vector3i(1,0,2)), new Chunk(new Vector3i(2,0,2))};
 
         ClassicWorldView worldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(1, 0, 1), new Vector3i(1,0,1)), new Vector3i(1,1,1));
-        assertEquals(new Vector3i(Chunk.SIZE_X, 0, Chunk.SIZE_Z), worldView.toWorldPos(Vector3i.zero()));
+        assertEquals(new Vector3i(ChunkType.Default.sizeX, 0, ChunkType.Default.sizeZ), worldView.toWorldPos(Vector3i.zero()));
     }
 }

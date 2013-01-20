@@ -24,6 +24,7 @@ import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.ChunkGenerator;
 
 /**
@@ -36,7 +37,7 @@ public class FlatTerrainGenerator implements ChunkGenerator {
 
     private static final String INIT_PARAMETER_HEIGHT = "height";
     // TODO FlatTerrainGenerator: What is a good value for MAX_Y?
-    public static final int MAX_HEIGHT = Chunk.SIZE_Y - 100;
+    public static final int MAX_HEIGHT = ChunkType.Default.sizeY - 100;
     public static final int MIN_HEIGHT = 0;
     public static final int DEFAULT_HEIGHT = 50;
 
@@ -116,11 +117,11 @@ public class FlatTerrainGenerator implements ChunkGenerator {
 
     @Override
     public void generateChunk(final Chunk chunk) {
-        for (int x = 0; x < Chunk.SIZE_X; x++) {
-            for (int z = 0; z < Chunk.SIZE_Z; z++) {
+        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
+            for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
                 final WorldBiomeProvider.Biome type = biomeProvider.getBiomeAt(chunk.getBlockWorldPosX(x), chunk.getBlockWorldPosZ(z));
 
-                for (int y = Chunk.SIZE_Y-1; y >= 0; y--) {
+                for (int y = ChunkType.Default.sizeY-1; y >= 0; y--) {
                     if (y == 0) {
                         // bedrock/mantle
                         chunk.setBlock(x, y, z, mantle);

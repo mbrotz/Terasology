@@ -26,6 +26,7 @@ import org.terasology.math.Vector3i;
 import org.terasology.rendering.world.BlockGrid;
 import org.terasology.world.MiniatureChunk;
 import org.terasology.world.WorldProvider;
+import org.terasology.world.chunks.ChunkType;
 
 import javax.vecmath.Vector3f;
 import java.util.HashSet;
@@ -73,7 +74,7 @@ public class AddMiniatureBlockAction implements EventHandlerSystem {
                         Vector3i globalPos = new Vector3i(x, y, z);
                         localPos.sub(globalPos, grid.getMinBounds());
 
-                        if (localPos.x >= MiniatureChunk.SIZE_X || localPos.y >= MiniatureChunk.SIZE_Y || localPos.z >= MiniatureChunk.SIZE_Z || localPos.x < 0 || localPos.y < 0 || localPos.z < 0)
+                        if (localPos.x >= ChunkType.Miniature.sizeX || localPos.y >= ChunkType.Miniature.sizeY || localPos.z >= ChunkType.Miniature.sizeZ || localPos.x < 0 || localPos.y < 0 || localPos.z < 0)
                             continue;
 
                         chunk.setSunlight(localPos, worldProvider.getSunlight(globalPos));

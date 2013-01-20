@@ -31,6 +31,7 @@ import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockPart;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * Generates tessellated chunk meshes from chunks.
@@ -51,10 +52,10 @@ public final class ChunkTessellator {
         PerformanceMonitor.startActivity("GenerateMesh");
         ChunkMesh mesh = new ChunkMesh();
 
-        Vector3i chunkOffset = new Vector3i(chunkPos.x * Chunk.SIZE_X, chunkPos.y * Chunk.SIZE_Y, chunkPos.z * Chunk.SIZE_Z);
+        Vector3i chunkOffset = new Vector3i(chunkPos.x * ChunkType.Default.sizeX, chunkPos.y * ChunkType.Default.sizeY, chunkPos.z * ChunkType.Default.sizeZ);
 
-        for (int x = 0; x < Chunk.SIZE_X; x++) {
-            for (int z = 0; z < Chunk.SIZE_Z; z++) {
+        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
+            for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
                 float biomeTemp = biomeProvider.getTemperatureAt(chunkOffset.x + x, chunkOffset.z + z);
                 float biomeHumidity = biomeProvider.getHumidityAt(chunkOffset.x + x, chunkOffset.z + z);
 
@@ -82,11 +83,11 @@ public final class ChunkTessellator {
 
         MiniatureChunk[] chunks = { miniatureChunk };
         ClassicWorldView localWorldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(Vector3i.zero(), Vector3i.zero()), Vector3i.zero());
-        localWorldView.setChunkSize(new Vector3i(MiniatureChunk.CHUNK_SIZE));
+        localWorldView.setChunkSize(new Vector3i(ChunkType.Miniature.getChunkSize()));
 
-        for (int x = 0; x < MiniatureChunk.SIZE_X; x++) {
-            for (int z = 0; z < MiniatureChunk.SIZE_Z; z++) {
-                for (int y = 0; y < MiniatureChunk.SIZE_Y; y++) {
+        for (int x = 0; x < ChunkType.Miniature.sizeX; x++) {
+            for (int z = 0; z < ChunkType.Miniature.sizeZ; z++) {
+                for (int y = 0; y < ChunkType.Miniature.sizeY; y++) {
                     Block block = miniatureChunk.getBlock(x,y,z);
 
                     if (block == null || block.isInvisible())

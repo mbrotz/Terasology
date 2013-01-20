@@ -40,6 +40,7 @@ import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkReadyEvent;
+import org.terasology.world.chunks.ChunkType;
 
 import com.google.common.collect.Queues;
 
@@ -326,7 +327,7 @@ public class LiquidSimulator implements EventHandlerSystem {
         public void run() {
             ClassicWorldView view = world.getLocalView(chunkPos);
             if (view != null) {
-                for (Vector3i pos : Region3i.createFromMinAndSize(new Vector3i(-1, 0, -1), new Vector3i(Chunk.SIZE_X + 2, Chunk.SIZE_Y, Chunk.SIZE_Z + 2))) {
+                for (Vector3i pos : Region3i.createFromMinAndSize(new Vector3i(-1, 0, -1), new Vector3i(ChunkType.Default.sizeX + 2, ChunkType.Default.sizeY, ChunkType.Default.sizeZ + 2))) {
                     LiquidData state = view.getLiquid(pos);
                     LiquidData newState = calcStateFor(pos, view);
                     if (!newState.equals(state)) {

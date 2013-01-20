@@ -30,6 +30,7 @@ import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkProvider;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.lighting.LightPropagator;
 import org.terasology.world.lighting.LightingUtil;
 import org.terasology.world.lighting.PropagationComparison;
@@ -175,7 +176,7 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public LiquidData getLiquid(int x, int y, int z) {
-        y = TeraMath.clamp(y, 0, Chunk.SIZE_Y - 1);
+        y = TeraMath.clamp(y, 0, ChunkType.Default.sizeY - 1);
 
         Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
@@ -188,7 +189,7 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public Block getBlock(int x, int y, int z) {
-        if (y >= Chunk.SIZE_Y || y < 0) {
+        if (y >= ChunkType.Default.sizeY || y < 0) {
             return BlockManager.getInstance().getAir();
         }
 
@@ -203,7 +204,7 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public byte getLight(int x, int y, int z) {
-        y = TeraMath.clamp(y, 0, Chunk.SIZE_Y - 1);
+        y = TeraMath.clamp(y, 0, ChunkType.Default.sizeY - 1);
 
         Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
@@ -216,7 +217,7 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public byte getSunlight(int x, int y, int z) {
-        y = TeraMath.clamp(y, 0, Chunk.SIZE_Y - 1);
+        y = TeraMath.clamp(y, 0, ChunkType.Default.sizeY - 1);
 
         Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
@@ -229,7 +230,7 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public byte getTotalLight(int x, int y, int z) {
-        y = TeraMath.clamp(y, 0, Chunk.SIZE_Y - 1);
+        y = TeraMath.clamp(y, 0, ChunkType.Default.sizeY - 1);
 
         Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
