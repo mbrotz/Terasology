@@ -247,7 +247,7 @@ public final class WorldRenderer {
         if (chunkStore == null) {
             chunkStore = new ChunkStoreProtobuf();
         }
-        _chunkProvider = new LocalChunkProvider(chunkStore, chunkGeneratorManager);
+        _chunkProvider = new LocalChunkProvider(ChunkType.Default, chunkStore, chunkGeneratorManager);
         EntityAwareWorldProvider entityWorldProvider = new EntityAwareWorldProvider(new WorldProviderCoreImpl(worldInfo, _chunkProvider));
         CoreRegistry.put(BlockEntityRegistry.class, entityWorldProvider);
         CoreRegistry.get(ComponentSystemManager.class).register(entityWorldProvider, "engine:BlockEntityRegistry");

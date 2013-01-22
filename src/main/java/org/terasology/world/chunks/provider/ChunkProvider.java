@@ -19,12 +19,18 @@ package org.terasology.world.chunks.provider;
 import org.terasology.entitySystem.EntityRef;
 import org.terasology.math.Vector3i;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * @author Immortius
  */
 public interface ChunkProvider {
 
+    /**
+     * @return The type of chunks generated/handled by this provider
+     */
+    public ChunkType getChunkType();
+    
     /**
      * Sets the world entity, for the purpose of receiving chunk events.
      * @param entity

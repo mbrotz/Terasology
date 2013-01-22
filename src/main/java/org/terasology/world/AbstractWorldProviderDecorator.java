@@ -18,6 +18,7 @@ package org.terasology.world;
 
 import org.terasology.math.Vector3i;
 import org.terasology.world.block.Block;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.liquid.LiquidData;
 
 /**
@@ -44,6 +45,11 @@ public class AbstractWorldProviderDecorator implements WorldProviderCore {
     @Override
     public WorldInfo getWorldInfo() {
         return base.getWorldInfo();
+    }
+
+    @Override
+    public ChunkType getChunkType() {
+        return base.getChunkType();
     }
 
     @Override

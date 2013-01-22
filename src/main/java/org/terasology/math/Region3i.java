@@ -245,7 +245,6 @@ public class Region3i implements Iterable<Vector3i> {
 
     private class Region3iIterator implements Iterator<Vector3i> {
         Vector3i pos;
-        Vector3i result = new Vector3i();
 
         public Region3iIterator(Region3i region) {
             this.pos = new Vector3i();

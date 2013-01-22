@@ -31,14 +31,12 @@ import org.terasology.entitySystem.RegisterComponentSystem;
 import org.terasology.game.CoreRegistry;
 import org.terasology.math.Region3i;
 import org.terasology.math.Side;
-import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.world.BlockChangedEvent;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
-import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.chunks.provider.ChunkReadyEvent;
 
@@ -303,7 +301,7 @@ public class LiquidSimulator implements EventHandlerSystem {
             if (world.getTime() < waitForTime) {
                 blockQueue.offer(this);
             } else if (world.isBlockActive(blockPos)) {
-                ClassicWorldView view = world.getWorldViewAround(TeraMath.calcChunkPos(blockPos));
+                ClassicWorldView view = world.getWorldViewAround(ChunkType.Default.calcChunkPos(blockPos));
                 if (view != null && view.isValidView()) {
                     simulate(blockPos, view);
                 }

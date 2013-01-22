@@ -50,6 +50,10 @@ public class PrepareLocalWorld implements LoadProcess {
     private boolean spawningPlayer;
     private Vector3i targetPos;
     private EntityRef spawnZoneEntity;
+    
+    private ChunkType getChunkType() {
+        return chunkProvider.getChunkType();
+    }
 
     @Override
     public String getMessage() {
@@ -78,19 +82,19 @@ public class PrepareLocalWorld implements LoadProcess {
         spawningPlayer = !iterator.hasNext();
         if (spawningPlayer) {
             spawnZoneEntity = entityManager.create();
-            spawnZoneEntity.addComponent(new LocationComponent(new Vector3f(ChunkType.Default.sizeX / 2, ChunkType.Default.sizeY / 2, ChunkType.Default.sizeZ / 2)));
+            spawnZoneEntity.addComponent(new LocationComponent(new Vector3f(getChunkType().sizeX / 2, getChunkType().sizeY / 2, getChunkType().sizeZ / 2)));
             worldRenderer.getChunkProvider().addRegionEntity(spawnZoneEntity, 4);
             targetPos = Vector3i.zero();
         } else {
             CoreRegistry.get(LocalPlayer.class).setEntity(iterator.next());
             worldRenderer.setPlayer(CoreRegistry.get(LocalPlayer.class));
-            targetPos = TeraMath.calcChunkPos(new Vector3i(worldRenderer.getPlayer().getPosition(), 0.5f));
+            targetPos = getChunkType().calcChunkPos(new Vector3i(worldRenderer.getPlayer().getPosition(), 0.5f));
         }
         return UNKNOWN_STEPS;
     }
 
     private void spawnPlayer() {
-        Vector3i spawnPoint = new Vector3i(ChunkType.Default.sizeX / 2, ChunkType.Default.sizeY / 2, ChunkType.Default.sizeZ / 2);
+        Vector3i spawnPoint = new Vector3i(getChunkType().sizeX / 2, getChunkType().sizeY / 2, getChunkType().sizeZ / 2);
         while (worldRenderer.getWorldProvider().getBlock(spawnPoint) == BlockManager.getInstance().getAir() && spawnPoint.y > 0) {
             spawnPoint.y--;
         }

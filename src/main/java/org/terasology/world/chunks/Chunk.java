@@ -65,7 +65,8 @@ public class Chunk implements Externalizable {
     public static final byte MAX_LIGHT = 0x0f;
     public static final byte MAX_LIQUID_DEPTH = 0x07;
 
-    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock accessLock = new ReentrantReadWriteLock();
+    
     private final ChunkType chunkType;
     private ChunkState chunkState = ChunkState.ADJACENCY_GENERATION_PENDING;    
     private final Vector3i pos = new Vector3i();
@@ -199,22 +200,22 @@ public class Chunk implements Externalizable {
     }
     
     public ReentrantReadWriteLock getLock() {
-        return lock;
+        return accessLock;
     }
 
     @Deprecated
     public void lock() {
-        lock.writeLock().lock();
+        accessLock.writeLock().lock();
     }
 
     @Deprecated
     public void unlock() {
-        lock.writeLock().unlock();
+        accessLock.writeLock().unlock();
     }
 
     @Deprecated
     public boolean isLocked() {
-        return lock.isWriteLocked();
+        return accessLock.isWriteLocked();
     }
 
     public ChunkType getChunkType() {

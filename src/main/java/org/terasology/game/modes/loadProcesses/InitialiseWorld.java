@@ -31,6 +31,7 @@ import org.terasology.utilities.FastRandom;
 import org.terasology.world.WorldBiomeProviderImpl;
 import org.terasology.world.WorldInfo;
 import org.terasology.world.WorldProvider;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.core.ChunkGeneratorManager;
 import org.terasology.world.generator.core.ChunkGeneratorManagerImpl;
 
@@ -65,7 +66,11 @@ public class InitialiseWorld implements LoadProcess {
 
         // TODO: Separate WorldRenderer from world handling in general
         // Init ChunkGeneratorManager
-        ChunkGeneratorManager chunkGeneratorManager = ChunkGeneratorManagerImpl.buildChunkGenerator(Arrays.asList(worldInfo.getChunkGenerators()));
+        final ChunkGeneratorManager chunkGeneratorManager;
+        if (ChunkType.Default.isStackable) 
+            chunkGeneratorManager = ChunkGeneratorManagerImpl.buildChunkGenerator(Arrays.asList("org.terasology.world.generator.core.StackableTestGenerator"));
+        else 
+            chunkGeneratorManager = ChunkGeneratorManagerImpl.buildChunkGenerator(Arrays.asList(worldInfo.getChunkGenerators()));
         chunkGeneratorManager.setWorldSeed(worldInfo.getSeed());
         chunkGeneratorManager.setWorldBiomeProvider(new WorldBiomeProviderImpl(worldInfo.getSeed()));
 

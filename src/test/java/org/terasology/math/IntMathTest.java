@@ -96,12 +96,4 @@ public class IntMathTest
         assertEquals(-1, TeraMath.ceilToInt(-1f));
     }
 
-    @Test
-    public void testChunkPosX() {
-        assertEquals(0, TeraMath.calcChunkPosX(1));
-        assertEquals(1, TeraMath.calcChunkPosX(ChunkType.Default.sizeX));
-        assertEquals(-1, TeraMath.calcChunkPosX(-1));
-        assertEquals(-2, TeraMath.calcChunkPosX(-ChunkType.Default.sizeX - 1));
-    }
-
 }

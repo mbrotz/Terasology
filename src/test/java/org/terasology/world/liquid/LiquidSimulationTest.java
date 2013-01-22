@@ -38,14 +38,17 @@ public class LiquidSimulationTest {
     ClassicWorldView view;
     Block air;
     Block dirt;
+    ChunkType type;
 
     @Before
     public void setup() {
-        Chunk[] chunks = new Chunk[] {new Chunk(new Vector3i(-1,0,-1)), new Chunk(new Vector3i(0,0,-1)), new Chunk(new Vector3i(1,0,-1)),
+        Chunk[][] chunks = { {new Chunk(new Vector3i(-1,0,-1)), new Chunk(new Vector3i(0,0,-1)), new Chunk(new Vector3i(1,0,-1)),
                 new Chunk(new Vector3i(-1,0,0)), new Chunk(new Vector3i(0,0,0)), new Chunk(new Vector3i(1,0,0)),
-                new Chunk(new Vector3i(-1,0,1)), new Chunk(new Vector3i(0,0,1)), new Chunk(new Vector3i(1,0,1))};
+                new Chunk(new Vector3i(-1,0,1)), new Chunk(new Vector3i(0,0,1)), new Chunk(new Vector3i(1,0,1))} };
 
-        view = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1,1,1));
+        type = ChunkType.Classic;
+        
+        view = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1,1,1), type);
 
         air = BlockManager.getInstance().getBlock((byte)0);
         dirt = new Block();
@@ -54,8 +57,8 @@ public class LiquidSimulationTest {
         dirt.setId((byte) 1);
         BlockManager.getInstance().addBlockFamily(new SymmetricFamily(dirt.getURI(), dirt));
 
-        for (int x = -ChunkType.Default.sizeX + 1; x < 2 * ChunkType.Default.sizeX; ++x) {
-            for (int z = -ChunkType.Default.sizeZ + 1; z < 2 * ChunkType.Default.sizeZ; ++z) {
+        for (int x = -type.sizeX + 1; x < 2 * type.sizeX; ++x) {
+            for (int z = -type.sizeZ + 1; z < 2 * type.sizeZ; ++z) {
                 view.setBlock(x, 0, z, dirt, air);
             }
         }
