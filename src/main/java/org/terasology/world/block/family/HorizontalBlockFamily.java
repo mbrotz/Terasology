@@ -41,7 +41,7 @@ public class HorizontalBlockFamily extends AbstractBlockFamily {
      */
     public HorizontalBlockFamily(BlockUri uri, Map<Side, Block> blocks, String ... categories) {
         super(uri, Arrays.asList(categories));
-        for (Side side : Side.horizontalSides()) {
+        for (Side side : Side.getHorizontalSides()) {
             Block block = blocks.get(side);
             if (block == null) {
                 throw new IllegalArgumentException("Missing block for side: " + side.toString());

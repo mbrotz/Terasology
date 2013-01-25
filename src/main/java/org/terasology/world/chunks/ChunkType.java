@@ -40,7 +40,7 @@ public enum ChunkType {
     
     Stackable(16, 16, 16, 2, true);
 
-    public static final ChunkType Default = ChunkType.Stackable;
+    public static final ChunkType Default = ChunkType.Classic;
     
     private ChunkType(int sizeX, int sizeY, int sizeZ, int id, boolean isStackable) {
         this.sizeX = sizeX;
@@ -192,7 +192,7 @@ public enum ChunkType {
      * @param output The vector recieving the result (must not be null)
      * @return The passed parameter {@code output}
      */
-    public final Vector3i calcChunkBlockPos(Vector3i blockWorldPos, Vector3i output) {
+    public final Vector3i calcBlockPos(Vector3i blockWorldPos, Vector3i output) {
         output.set(calcBlockPosX(blockWorldPos.x), calcBlockPosY(blockWorldPos.y), calcBlockPosZ(blockWorldPos.z));
         return output;
     }
@@ -202,7 +202,7 @@ public enum ChunkType {
      * @param worldBlockPos The position of the block in the world
      * @return The position of the block
      */
-    public final Vector3i calcChunkBlockPos(Vector3i blockWorldPos) {
+    public final Vector3i calcBlockPos(Vector3i blockWorldPos) {
         return new Vector3i(calcBlockPosX(blockWorldPos.x), calcBlockPosY(blockWorldPos.y), calcBlockPosZ(blockWorldPos.z));
     }
     
@@ -214,7 +214,7 @@ public enum ChunkType {
      * @param output The vector recieving the result (must not be null)
      * @return The passed parameter {@code output}
      */
-    public final Vector3i calcChunkBlockPos(int x, int y, int z, Vector3i output) {
+    public final Vector3i calcBlockPos(int x, int y, int z, Vector3i output) {
         output.set(calcBlockPosX(x), calcBlockPosY(y), calcBlockPosZ(z));
         return output;
     }
@@ -250,8 +250,8 @@ public enum ChunkType {
         minPos.sub(extent, extent * fStackable, extent);
         final Vector3i maxPos = worldBlockRegion.max();
         maxPos.add(extent, extent * fStackable, extent);
-        final Vector3i minChunk = calcChunkPos(minPos);
-        final Vector3i maxChunk = calcChunkPos(maxPos);
+        final Vector3i minChunk = calcChunkPos(minPos, minPos);
+        final Vector3i maxChunk = calcChunkPos(maxPos, maxPos);
         return Region3i.createFromMinMax(minChunk, maxChunk);
     }
     

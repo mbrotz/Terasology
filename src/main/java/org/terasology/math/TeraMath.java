@@ -267,10 +267,10 @@ public final class TeraMath {
 
     public static Side getSecondaryPlacementDirection(Vector3f direction, Vector3f normal) {
         Side surfaceDir = Side.inDirection(normal);
-        Vector3f attachDir = surfaceDir.reverse().getVector3i().toVector3f();
+        Vector3f attachDir = surfaceDir.getReverse().getVector3i().toVector3f();
         Vector3f rawDirection = new Vector3f(direction);
         float dot = rawDirection.dot(attachDir);
         rawDirection.sub(new Vector3f(dot * attachDir.x, dot * attachDir.y, dot * attachDir.z));
-        return Side.inDirection(rawDirection.x, rawDirection.y, rawDirection.z).reverse();
+        return Side.inDirection(rawDirection.x, rawDirection.y, rawDirection.z).getReverse();
     }
 }

@@ -151,7 +151,7 @@ public class LightPropagator {
                         adjLight -= 1;
                     }
                     Block otherType = worldView.getBlock(x + side.getVector3i().x, y + side.getVector3i().y, z + side.getVector3i().z);
-                    if (adjLight > light && LightingUtil.canSpreadLightOutOf(otherType, side.reverse())) {
+                    if (adjLight > light && LightingUtil.canSpreadLightOutOf(otherType, side.getReverse())) {
                         light = adjLight;
                     }
                 }
@@ -166,7 +166,7 @@ public class LightPropagator {
                 Vector3i adjDir = side.getVector3i();
                 Block otherType = worldView.getBlock(x + adjDir.x, y + adjDir.y, z + adjDir.z);
                 byte adjLight = (byte)(worldView.getLight(x + adjDir.x, y + adjDir.y, z + adjDir.z) - 1);
-                if (adjLight > newLight && LightingUtil.canSpreadLightOutOf(otherType, side.reverse())) {
+                if (adjLight > newLight && LightingUtil.canSpreadLightOutOf(otherType, side.getReverse())) {
                     newLight = adjLight;
                 }
             }
@@ -238,7 +238,7 @@ public class LightPropagator {
             }
             // Move sunlight sideways
             for (Vector3i pos : currentWave) {
-                for (Side side : Side.horizontalSides()) {
+                for (Side side : Side.getHorizontalSides()) {
                     Vector3i adjPos = new Vector3i(pos);
                     adjPos.add(side.getVector3i());
 
@@ -246,7 +246,7 @@ public class LightPropagator {
                         Block block = worldView.getBlock(pos);
                         Block adjBlock = worldView.getBlock(adjPos);
 
-                        if (LightingUtil.canSpreadLightOutOf(block, side) && LightingUtil.canSpreadLightInto(adjBlock, side.reverse())) {
+                        if (LightingUtil.canSpreadLightOutOf(block, side) && LightingUtil.canSpreadLightInto(adjBlock, side.getReverse())) {
                             byte adjLight = worldView.getSunlight(adjPos);
                             if (adjLight < lightLevel - 1) {
                                 worldView.setSunlight(adjPos, (byte) (lightLevel - 1));
@@ -287,7 +287,7 @@ public class LightPropagator {
 
                     Block block = worldView.getBlock(pos);
                     Block adjBlock = worldView.getBlock(adjPos);
-                    if (LightingUtil.canSpreadLightOutOf(block, side) && LightingUtil.canSpreadLightInto(adjBlock, side.reverse())) {
+                    if (LightingUtil.canSpreadLightOutOf(block, side) && LightingUtil.canSpreadLightInto(adjBlock, side.getReverse())) {
                         byte adjLight = worldView.getLight(adjPos);
                         if (adjLight < lightLevel - 1) {
                             worldView.setLight(adjPos, (byte) (lightLevel - 1));
@@ -426,7 +426,7 @@ public class LightPropagator {
         adjSide.add(side.getVector3i());
         Block block = worldView.getBlock(blockX, blockY, blockZ);
         Block adjBlock = worldView.getBlock(adjSide);
-        if (lightLevel > 1 && worldView.getSunlight(adjSide) < lightLevel - 1 && LightingUtil.canSpreadLightOutOf(block, side) && LightingUtil.canSpreadLightInto(adjBlock, side.reverse())) {
+        if (lightLevel > 1 && worldView.getSunlight(adjSide) < lightLevel - 1 && LightingUtil.canSpreadLightOutOf(block, side) && LightingUtil.canSpreadLightInto(adjBlock, side.getReverse())) {
             worldView.setSunlight(adjSide, (byte) (lightLevel - 1));
             pushSunlight(adjSide.x, adjSide.y, adjSide.z, (byte) (lightLevel - 1));
         }
@@ -438,7 +438,7 @@ public class LightPropagator {
         adjSide.add(side.getVector3i());
         Block block = worldView.getBlock(blockX, blockY, blockZ);
         Block adjBlock = worldView.getBlock(adjSide);
-        if (lightLevel > 1 && worldView.getLight(adjSide) < lightLevel - 1 && LightingUtil.canSpreadLightOutOf(block, side) && LightingUtil.canSpreadLightInto(adjBlock, side.reverse())) {
+        if (lightLevel > 1 && worldView.getLight(adjSide) < lightLevel - 1 && LightingUtil.canSpreadLightOutOf(block, side) && LightingUtil.canSpreadLightInto(adjBlock, side.getReverse())) {
             worldView.setLight(adjSide, (byte) (lightLevel - 1));
             pushLight(adjSide.x, adjSide.y, adjSide.z, (byte) (lightLevel - 1));
         }

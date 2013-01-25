@@ -14,7 +14,7 @@ import org.terasology.world.generator.ChunkGenerator;
 public class StackableTestGenerator implements ChunkGenerator {
 
     private Block air = BlockManager.getInstance().getAir();
-    private Block mantle = BlockManager.getInstance().getBlock("engine:MantleStone");
+    private Block stone = BlockManager.getInstance().getBlock("engine:Stone");
     
     @Override
     public void setWorldSeed(String seed) {}
@@ -36,7 +36,7 @@ public class StackableTestGenerator implements ChunkGenerator {
         final Vector3i chunkPos = chunk.getPos();
         final int sizeX = chunk.getChunkSizeX(), sizeY = chunk.getChunkSizeY(), sizeZ = chunk.getChunkSizeZ();
         final TeraArray blocks = chunk.getBlockData(), sunlight = chunk.getSunlightData(), light = chunk.getLightData();
-        final byte fill = chunkPos.y == -1 ? mantle.getId() : air.getId();
+        final byte fill = chunkPos.y == -1 ? stone.getId() : air.getId();
         
         for (int y = 0; y < sizeY; y++) {
             for (int x = 0; x < sizeX; x++) {
@@ -49,7 +49,7 @@ public class StackableTestGenerator implements ChunkGenerator {
         }
 
         if (chunkPos.y != -1) {
-            final byte id = mantle.getId();
+            final byte id = stone.getId();
             final int maxX = sizeX-1, maxY = sizeY-1, maxZ = sizeZ-1;
             blocks.set(0, 0, 0, id);
             blocks.set(0, maxY, 0, id);

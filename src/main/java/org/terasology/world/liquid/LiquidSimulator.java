@@ -206,7 +206,7 @@ public class LiquidSimulator implements EventHandlerSystem {
 
         LiquidData h1 = new LiquidData();
         LiquidData h2 = new LiquidData();
-        for (Side side : Side.horizontalSides()) {
+        for (Side side : Side.getHorizontalSides()) {
             Vector3i adjPos = new Vector3i(side.getVector3i());
             adjPos.add(pos);
             Block supportingBlock = worldView.getBlock(adjPos.x, adjPos.y - 1, adjPos.z);
@@ -262,7 +262,7 @@ public class LiquidSimulator implements EventHandlerSystem {
         }
 
         int availableSpaces = 0;
-        for (Side side : Side.horizontalSides()) {
+        for (Side side : Side.getHorizontalSides()) {
             Vector3i adjPos = new Vector3i(pos);
             adjPos.add(side.getVector3i());
             Block block = worldView.getBlock(pos);

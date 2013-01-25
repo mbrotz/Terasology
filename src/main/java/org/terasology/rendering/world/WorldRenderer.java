@@ -147,8 +147,8 @@ public final class WorldRenderer {
     /* CHUNKS */
     private ChunkTessellator _chunkTesselator;
     private boolean _pendingChunks = false;
-    private final List<Chunk> _chunksInProximity = Lists.newArrayList();
-    private int _chunkPosX, _chunkPosZ;
+    private final List<Chunk> _chunksInProximity = Lists.newLinkedList();
+    private int _chunkPosX, _chunkPosY, _chunkPosZ;
 
     /* RENDERING */
     private final LinkedList<Chunk> _renderQueueChunksOpaque = Lists.newLinkedList();
@@ -275,50 +275,34 @@ public final class WorldRenderer {
      */
     public boolean updateChunksInProximity(boolean force) {
         int newChunkPosX = calcCamChunkOffsetX();
+        int newChunkPosY = calcCamChunkOffsetY();
         int newChunkPosZ = calcCamChunkOffsetZ();
 
         // TODO: This should actually be done based on events from the ChunkProvider on new chunk availability/old chunk removal
-        int viewingDistance = Config.getInstance().getActiveViewingDistance();
+        int viewDist = Config.getInstance().getActiveViewingDistance();
+        int viewDistHalf = viewDist / 2;
 
-        if (_chunkPosX != newChunkPosX || _chunkPosZ != newChunkPosZ || force || _pendingChunks) {
+        if (_chunkPosX != newChunkPosX || _chunkPosY != newChunkPosY || _chunkPosZ != newChunkPosZ || force || _pendingChunks) {
             // just add all visible chunks
-            if (_chunksInProximity.size() == 0 || force || _pendingChunks) {
+//            if (_chunksInProximity.size() == 0 || force || _pendingChunks) {
                 _chunksInProximity.clear();
-                for (int x = -(viewingDistance / 2); x < viewingDistance / 2; x++) {
-                    for (int z = -(viewingDistance / 2); z < viewingDistance / 2; z++) {
-                        Chunk c = _chunkProvider.getChunk(newChunkPosX + x, 0, newChunkPosZ + z);
-                        if (c != null && c.getChunkState() == ChunkState.COMPLETE && _worldProvider.getLocalView(c.getPos()) != null) {
-                            _chunksInProximity.add(c);
-                        } else {
-                            _pendingChunks = true;
+                if (ChunkType.Default.isStackable) {
+                    for (int y = -viewDistHalf; y < viewDistHalf; y++) {
+                        for (int x = -viewDistHalf; x < viewDistHalf; x++) {
+                            for (int z = -viewDistHalf; z < viewDistHalf; z++) {
+                                Chunk c = _chunkProvider.getChunk(newChunkPosX + x, newChunkPosY + y, newChunkPosZ + z);
+                                if (c != null && c.getChunkState() == ChunkState.COMPLETE && _worldProvider.getLocalView(c.getPos()) != null) {
+                                    _chunksInProximity.add(c);
+                                } else {
+                                    _pendingChunks = true;
+                                }
+                            }
                         }
                     }
-                }
-            }
-            // adjust proximity chunk list
-            else {
-                int vd2 = viewingDistance / 2;
-
-                Rect2i oldView = new Rect2i(_chunkPosX - vd2, _chunkPosZ - vd2, viewingDistance, viewingDistance);
-                Rect2i newView = new Rect2i(newChunkPosX - vd2, newChunkPosZ - vd2, viewingDistance, viewingDistance);
-
-                // remove
-                List<Rect2i> removeRects = Rect2i.subtractEqualsSized(oldView, newView);
-                for (Rect2i r : removeRects) {
-                    for (int x = r.minX(); x < r.maxX(); ++x) {
-                        for (int y = r.minY(); y < r.maxY(); ++y) {
-                            Chunk c = _chunkProvider.getChunk(x, 0, y);
-                            _chunksInProximity.remove(c);
-                        }
-                    }
-                }
-
-                // add
-                List<Rect2i> addRects = Rect2i.subtractEqualsSized(newView, oldView);
-                for (Rect2i r : addRects) {
-                    for (int x = r.minX(); x < r.maxX(); ++x) {
-                        for (int y = r.minY(); y < r.maxY(); ++y) {
-                            Chunk c = _chunkProvider.getChunk(x, 0, y);
+                } else {
+                    for (int x = -viewDistHalf; x < viewDistHalf; x++) {
+                        for (int z = -viewDistHalf; z < viewDistHalf; z++) {
+                            Chunk c = _chunkProvider.getChunk(newChunkPosX + x, 0, newChunkPosZ + z);
                             if (c != null && c.getChunkState() == ChunkState.COMPLETE && _worldProvider.getLocalView(c.getPos()) != null) {
                                 _chunksInProximity.add(c);
                             } else {
@@ -327,9 +311,44 @@ public final class WorldRenderer {
                         }
                     }
                 }
-            }
+//            }
+//            // adjust proximity chunk list
+//            else {
+//                if (ChunkType.Default.isStackable)
+//                    throw new RuntimeException();
+//                
+//                Rect2i oldView = new Rect2i(_chunkPosX - viewDistHalf, _chunkPosZ - viewDistHalf, viewDist, viewDist);
+//                Rect2i newView = new Rect2i(newChunkPosX - viewDistHalf, newChunkPosZ - viewDistHalf, viewDist, viewDist);
+//
+//                // remove
+//                List<Rect2i> removeRects = Rect2i.subtractEqualsSized(oldView, newView);
+//                for (Rect2i r : removeRects) {
+//                    for (int x = r.minX(); x < r.maxX(); ++x) {
+//                        for (int y = r.minY(); y < r.maxY(); ++y) {
+//                            Chunk c = _chunkProvider.getChunk(x, 0, y);
+//                            _chunksInProximity.remove(c);
+//                        }
+//                    }
+//                }
+//
+//                // add
+//                List<Rect2i> addRects = Rect2i.subtractEqualsSized(newView, oldView);
+//                for (Rect2i r : addRects) {
+//                    for (int x = r.minX(); x < r.maxX(); ++x) {
+//                        for (int y = r.minY(); y < r.maxY(); ++y) {
+//                            Chunk c = _chunkProvider.getChunk(x, 0, y);
+//                            if (c != null && c.getChunkState() == ChunkState.COMPLETE && _worldProvider.getLocalView(c.getPos()) != null) {
+//                                _chunksInProximity.add(c);
+//                            } else {
+//                                _pendingChunks = true;
+//                            }
+//                        }
+//                    }
+//                }
+//            }
 
             _chunkPosX = newChunkPosX;
+            _chunkPosY = newChunkPosY;
             _chunkPosZ = newChunkPosZ;
 
 
@@ -361,10 +380,11 @@ public final class WorldRenderer {
         }
 
         private float distanceToCamera(Chunk chunk) {
-            Vector3f result = new Vector3f((chunk.getPos().x + 0.5f) * ChunkType.Default.sizeX, 0, (chunk.getPos().z + 0.5f) * ChunkType.Default.sizeZ);
+            Vector3f result = new Vector3f((chunk.getPos().x + 0.5f) * ChunkType.Default.sizeX, (chunk.getPos().y + 0.5f) * ChunkType.Default.sizeY * ChunkType.Default.fStackable, (chunk.getPos().z + 0.5f) * ChunkType.Default.sizeZ);
 
             Vector3f cameraPos = CoreRegistry.get(WorldRenderer.class).getActiveCamera().getPosition();
             result.x -= cameraPos.x;
+            result.y -= cameraPos.y;
             result.z -= cameraPos.z;
 
             return result.length();
@@ -382,17 +402,17 @@ public final class WorldRenderer {
      * Creates the world time events to play the game's soundtrack at specific times.
      */
     public void initTimeEvents() {
-    	
+        
         // SUNRISE
         _worldTimeEventManager.addWorldTimeEvent(new WorldTimeEvent(0.1, true) {
             @Override
             public void run() {
-            	if(getPlayerPosition().y<50)
-            		AudioManager.playMusic("engine:SpacialWinds");
-            	else if(getPlayerPosition().y>175)
-            		AudioManager.playMusic("engine:Heaven");
-            	else
-            		AudioManager.playMusic("engine:Sunrise");
+                if(getPlayerPosition().y<50)
+                    AudioManager.playMusic("engine:SpacialWinds");
+                else if(getPlayerPosition().y>175)
+                    AudioManager.playMusic("engine:Heaven");
+                else
+                    AudioManager.playMusic("engine:Sunrise");
             }
         });
 
@@ -400,12 +420,12 @@ public final class WorldRenderer {
         _worldTimeEventManager.addWorldTimeEvent(new WorldTimeEvent(0.25, true) {
             @Override
             public void run() {
-            	if(getPlayerPosition().y<50)
-            		AudioManager.playMusic("engine:DwarfForge");
-            	else if(getPlayerPosition().y>175)
-            		AudioManager.playMusic("engine:SpaceExplorers");
-            	else
-                AudioManager.playMusic("engine:Afternoon");
+                if(getPlayerPosition().y<50)
+                    AudioManager.playMusic("engine:DwarfForge");
+                else if(getPlayerPosition().y>175)
+                    AudioManager.playMusic("engine:SpaceExplorers");
+                else
+                    AudioManager.playMusic("engine:Afternoon");
             }
         });
 
@@ -413,12 +433,12 @@ public final class WorldRenderer {
         _worldTimeEventManager.addWorldTimeEvent(new WorldTimeEvent(0.4, true) {
             @Override
             public void run() {
-            	if(getPlayerPosition().y<50)
-            		AudioManager.playMusic("engine:OrcFortress");
-            	else if(getPlayerPosition().y>175)
-            		AudioManager.playMusic("engine:PeacefulWorld");
-            	else
-            		AudioManager.playMusic("engine:Sunset");
+                if(getPlayerPosition().y<50)
+                    AudioManager.playMusic("engine:OrcFortress");
+                else if(getPlayerPosition().y>175)
+                    AudioManager.playMusic("engine:PeacefulWorld");
+                else
+                    AudioManager.playMusic("engine:Sunset");
             }
         });
 
@@ -426,12 +446,12 @@ public final class WorldRenderer {
         _worldTimeEventManager.addWorldTimeEvent(new WorldTimeEvent(0.6, true) {
             @Override
             public void run() {
-            	if(getPlayerPosition().y<50)
-            		AudioManager.playMusic("engine:CreepyCaves");
-            	else if(getPlayerPosition().y>175)
-            		AudioManager.playMusic("engine:ShootingStars");
-            	else
-            		AudioManager.playMusic("engine:Dimlight");
+                if(getPlayerPosition().y<50)
+                    AudioManager.playMusic("engine:CreepyCaves");
+                else if(getPlayerPosition().y>175)
+                    AudioManager.playMusic("engine:ShootingStars");
+                else
+                    AudioManager.playMusic("engine:Dimlight");
             }
         });
 
@@ -439,12 +459,12 @@ public final class WorldRenderer {
         _worldTimeEventManager.addWorldTimeEvent(new WorldTimeEvent(0.75, true) {
             @Override
             public void run() {
-            	if(getPlayerPosition().y<50)
-            		AudioManager.playMusic("engine:CreepyCaves");
-            	else if(getPlayerPosition().y>175)
-            		AudioManager.playMusic("engine:NightTheme");
-            	else
-            		AudioManager.playMusic("engine:OtherSide");
+                if(getPlayerPosition().y<50)
+                    AudioManager.playMusic("engine:CreepyCaves");
+                else if(getPlayerPosition().y>175)
+                    AudioManager.playMusic("engine:NightTheme");
+                else
+                    AudioManager.playMusic("engine:OtherSide");
             }
         });
 
@@ -452,12 +472,12 @@ public final class WorldRenderer {
         _worldTimeEventManager.addWorldTimeEvent(new WorldTimeEvent(0.9, true) {
             @Override
             public void run() {
-            	if(getPlayerPosition().y<50)
-            		AudioManager.playMusic("engine:CreepyCaves");
-            	else if(getPlayerPosition().y>175)
-            		AudioManager.playMusic("engine:Heroes");
-            	else
-            		AudioManager.playMusic("engine:Resurface");
+                if(getPlayerPosition().y<50)
+                    AudioManager.playMusic("engine:CreepyCaves");
+                else if(getPlayerPosition().y>175)
+                    AudioManager.playMusic("engine:Heroes");
+                else
+                    AudioManager.playMusic("engine:Resurface");
             }
         });
     }
@@ -850,13 +870,14 @@ public final class WorldRenderer {
      * Returns the maximum height at a given position.
      *
      * @param x The X-coordinate
+     * @param y the Y-coordinate
      * @param z The Z-coordinate
      * @return The maximum height
      */
-    public final int maxHeightAt(int x, int z) {
-        for (int y = ChunkType.Default.sizeY - 1; y >= 0; y--) {
-            if (_worldProvider.getBlock(x, y, z).getId() != 0x0)
-                return y;
+    public final int maxHeightAt(int x, int y, int z) {
+        for (int j = ChunkType.Default.sizeY - 1; j >= 0; j--) {
+            if (_worldProvider.getBlock(x, y + j, z).getId() != 0x0)
+                return j;
         }
 
         return 0;
@@ -869,6 +890,15 @@ public final class WorldRenderer {
      */
     private int calcCamChunkOffsetX() {
         return (int) (getActiveCamera().getPosition().x / ChunkType.Default.sizeX);
+    }
+
+    /**
+     * Chunk position of the player.
+     *
+     * @return The player offset on the y-axis
+     */
+    private int calcCamChunkOffsetY() {
+        return (int) (getActiveCamera().getPosition().y / ChunkType.Default.sizeY) * ChunkType.Default.fStackable;
     }
 
     /**
@@ -940,11 +970,12 @@ public final class WorldRenderer {
     public boolean pregenerateChunks() {
         boolean complete = true;
         int newChunkPosX = calcCamChunkOffsetX();
+        int newChunkPosY = calcCamChunkOffsetX();
         int newChunkPosZ = calcCamChunkOffsetZ();
-        int viewingDistance = Config.getInstance().getActiveViewingDistance();
+        int viewDistHalf = Config.getInstance().getActiveViewingDistance() / 2;
 
         _chunkProvider.update();
-        for (Vector3i pos : Region3i.createFromCenterExtents(new Vector3i(newChunkPosX, 0, newChunkPosZ), new Vector3i(viewingDistance / 2, 0, viewingDistance / 2))) {
+        for (Vector3i pos : Region3i.createFromCenterExtents(new Vector3i(newChunkPosX, newChunkPosY * ChunkType.Default.fStackable, newChunkPosZ), new Vector3i(viewDistHalf, viewDistHalf * ChunkType.Default.fStackable, viewDistHalf))) {
             Chunk chunk = _chunkProvider.getChunk(pos);
             if (chunk == null || chunk.getChunkState() != ChunkState.COMPLETE) {
                 complete = false;

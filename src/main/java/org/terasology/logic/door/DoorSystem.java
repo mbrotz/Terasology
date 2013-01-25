@@ -127,8 +127,8 @@ public class DoorSystem implements EventHandlerSystem {
             return;
         }
 
-        Side closedSide = facingDir.reverse();
-        if (closedSide == attachSide || closedSide.reverse() == attachSide) {
+        Side closedSide = facingDir.getReverse();
+        if (closedSide == attachSide || closedSide.getReverse() == attachSide) {
             closedSide = attachSide.rotateClockwise(1);
         }
 
@@ -142,7 +142,7 @@ public class DoorSystem implements EventHandlerSystem {
         newDoor.addComponent(new LocationComponent(doorCenter));
         DoorComponent newDoorComp = newDoor.getComponent(DoorComponent.class);
         newDoorComp.closedDirection = closedSide;
-        newDoorComp.openDirection = attachSide.reverse();
+        newDoorComp.openDirection = attachSide.getReverse();
         newDoorComp.isOpen = false;
         newDoor.saveComponent(newDoorComp);
         newDoor.removeComponent(ItemComponent.class);
@@ -154,8 +154,8 @@ public class DoorSystem implements EventHandlerSystem {
     private Side determineAttachSide(Side facingDir, Side offsetDir, Vector3i bottomBlockPos, Vector3i topBlockPos) {
         Side attachSide = null;
         if (offsetDir.isHorizontal()) {
-            if (canAttachTo(topBlockPos, offsetDir.reverse()) && canAttachTo(bottomBlockPos, offsetDir.reverse())) {
-                attachSide = offsetDir.reverse();
+            if (canAttachTo(topBlockPos, offsetDir.getReverse()) && canAttachTo(bottomBlockPos, offsetDir.getReverse())) {
+                attachSide = offsetDir.getReverse();
             }
         }
         if (attachSide == null) {

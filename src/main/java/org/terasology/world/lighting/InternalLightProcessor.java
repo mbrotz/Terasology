@@ -90,7 +90,7 @@ public class InternalLightProcessor {
             if (chunk.isInBounds(adjX, adjY, adjZ)) {
                 byte adjLightValue = chunk.getLight(adjX, adjY, adjZ);
                 Block adjBlock = chunk.getBlock(adjX, adjY, adjZ);
-                if (adjLightValue < lightValue - 1 && LightingUtil.canSpreadLightOutOf(block, adjDir) && LightingUtil.canSpreadLightInto(adjBlock, adjDir.reverse())) {
+                if (adjLightValue < lightValue - 1 && LightingUtil.canSpreadLightOutOf(block, adjDir) && LightingUtil.canSpreadLightInto(adjBlock, adjDir.getReverse())) {
                     chunk.setLight(adjX, adjY, adjZ, (byte) (lightValue - 1));
                     spreadLightInternal(chunk, adjX, adjY, adjZ, adjBlock);
                 }
@@ -119,14 +119,14 @@ public class InternalLightProcessor {
 
         if (lightValue <= 1) return;
 
-        for (Side adjDir : Side.horizontalSides()) {
+        for (Side adjDir : Side.getHorizontalSides()) {
             int adjX = x + adjDir.getVector3i().x;
             int adjZ = z + adjDir.getVector3i().z;
 
             if (chunk.isInBounds(adjX, y, adjZ) && LightingUtil.canSpreadLightOutOf(block, adjDir)) {
                 byte adjLightValue = chunk.getSunlight(adjX, y, adjZ);
                 Block adjBlock = chunk.getBlock(adjX, y, adjZ);
-                if (adjLightValue < lightValue - 1 && LightingUtil.canSpreadLightInto(adjBlock, adjDir.reverse())) {
+                if (adjLightValue < lightValue - 1 && LightingUtil.canSpreadLightInto(adjBlock, adjDir.getReverse())) {
                     chunk.setSunlight(adjX, y, adjZ, (byte) (lightValue - 1));
                     spreadSunlightInternal(chunk, adjX, y, adjZ, adjBlock);
                 }

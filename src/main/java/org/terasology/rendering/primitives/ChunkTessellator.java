@@ -51,8 +51,8 @@ public final class ChunkTessellator {
     public ChunkMesh generateMesh(ClassicWorldView worldView, Vector3i chunkPos, int meshHeight, int verticalOffset) {
         PerformanceMonitor.startActivity("GenerateMesh");
         ChunkMesh mesh = new ChunkMesh();
-
-        Vector3i chunkOffset = new Vector3i(chunkPos.x * ChunkType.Default.sizeX, chunkPos.y * ChunkType.Default.sizeY, chunkPos.z * ChunkType.Default.sizeZ);
+        
+        Vector3i chunkOffset = new Vector3i(chunkPos.x * ChunkType.Default.sizeX, chunkPos.y * ChunkType.Default.sizeY * ChunkType.Default.fStackable, chunkPos.z * ChunkType.Default.sizeZ);
 
         for (int x = 0; x < ChunkType.Default.sizeX; x++) {
             for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
@@ -274,20 +274,20 @@ public final class ChunkTessellator {
             drawDir[side.ordinal()] = isSideVisibleForBlockTypes(blockToCheck, block, side);
         }
 
-        if (y == 0) {
+        if (!ChunkType.Default.isStackable && y == 0) {
             drawDir[Side.BOTTOM.ordinal()] = false;
         }
 
         // If the block is lowered, some more faces may have to be drawn
         if (block.isLiquid()) {
             // Draw horizontal sides if visible from below
-            for (Side side : Side.horizontalSides()) {
+            for (Side side : Side.getHorizontalSides()) {
                 Vector3i offset = side.getVector3i();
                 Block adjacentBelow = view.getBlock(x + offset.x, y - 1, z + offset.z);
                 Block adjacent = view.getBlock(x + offset.x, y, z + offset.z);
                 Block below = view.getBlock(x, y - 1, z);
 
-                drawDir[side.ordinal()] |= (isSideVisibleForBlockTypes(adjacentBelow, block, side) && !isSideVisibleForBlockTypes(below, adjacent, side.reverse()));
+                drawDir[side.ordinal()] |= (isSideVisibleForBlockTypes(adjacentBelow, block, side) && !isSideVisibleForBlockTypes(below, adjacent, side.getReverse()));
             }
 
             // Draw the top if below a non-lowered block
@@ -329,7 +329,7 @@ public final class ChunkTessellator {
         if (currentBlock.isLiquid() && blockToCheck.isLiquid()) return false;
 
         return blockToCheck.getId() == 0x0 ||
-                !blockToCheck.isFullSide(side.reverse()) ||
+                !blockToCheck.isFullSide(side.getReverse()) ||
                 (!currentBlock.isTranslucent() && blockToCheck.isTranslucent());
     }
 
