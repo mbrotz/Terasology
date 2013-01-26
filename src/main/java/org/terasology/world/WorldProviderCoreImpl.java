@@ -24,12 +24,12 @@ import org.terasology.logic.manager.Config;
 import org.terasology.logic.mod.Mod;
 import org.terasology.logic.mod.ModManager;
 import org.terasology.math.Region3i;
-import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.ChunkProvider;
+import org.terasology.world.chunks.ChunkType;
+import org.terasology.world.chunks.provider.ChunkProvider;
 import org.terasology.world.lighting.LightPropagator;
 import org.terasology.world.lighting.LightingUtil;
 import org.terasology.world.lighting.PropagationComparison;
@@ -95,9 +95,14 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
         for (Mod mod : CoreRegistry.get(ModManager.class).getActiveMods()) {
             modConfig.addMod(mod.getModInfo().getId());
         }
-        WorldInfo worldInfo = new WorldInfo(title, seed, getTime(), chunkGenerators, CoreRegistry.get(GameType.class).getClass().toString(), modConfig);
+        WorldInfo worldInfo = new WorldInfo(title, seed, getTime(), chunkProvider.getChunkType(), chunkGenerators, CoreRegistry.get(GameType.class).getClass().toString(), modConfig);
         worldInfo.setBlockIdMap(BlockManager.getInstance().getBlockIdMap());
         return worldInfo;
+    }
+    
+    @Override
+    public ChunkType getChunkType() {
+        return chunkProvider.getChunkType();
     }
 
     @Override
@@ -106,18 +111,18 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
     }
 
     @Override
-    public WorldView getLocalView(Vector3i chunk) {
-        return WorldView.createLocalView(chunk, chunkProvider);
+    public ClassicWorldView getLocalView(Vector3i chunk) {
+        return ClassicWorldView.createLocalView(chunk, chunkProvider);
     }
 
     @Override
-    public WorldView getWorldViewAround(Vector3i chunk) {
-        return WorldView.createSubviewAroundChunk(chunk, chunkProvider);
+    public ClassicWorldView getWorldViewAround(Vector3i chunk) {
+        return ClassicWorldView.createSubviewAroundChunk(chunk, chunkProvider);
     }
 
     @Override
     public boolean isBlockActive(int x, int y, int z) {
-        return chunkProvider.isChunkAvailable(TeraMath.calcChunkPos(x, y, z));
+        return chunkProvider.isChunkAvailable(getChunkType().calcChunkPos(x, y, z));
     }
 
     @Override
@@ -133,12 +138,12 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
     @Override
     public boolean setBlock(int x, int y, int z, Block type, Block oldType) {
         Vector3i blockPos = new Vector3i(x, y, z);
-        WorldView worldView;
+        ClassicWorldView worldView;
 
         if (LightingUtil.compareLightingPropagation(type, oldType) != PropagationComparison.IDENTICAL || type.getLuminance() != oldType.getLuminance()) {
-            worldView = WorldView.createSubviewAroundBlock(blockPos, Chunk.MAX_LIGHT + 1, chunkProvider);
+            worldView = ClassicWorldView.createSubviewAroundBlock(blockPos, Chunk.MAX_LIGHT + 1, chunkProvider);
         } else {
-            worldView = WorldView.createSubviewAroundBlock(blockPos, 1, chunkProvider);
+            worldView = ClassicWorldView.createSubviewAroundBlock(blockPos, 1, chunkProvider);
         }
         if (worldView != null) {
             worldView.lock();
@@ -164,10 +169,10 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
     @Override
     public boolean setLiquid(int x, int y, int z, LiquidData newState, LiquidData oldState) {
         // TODO: Locking, light changes
-        Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
+        Vector3i chunkPos = getChunkType().calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
         if (chunk != null) {
-            Vector3i blockPos = TeraMath.calcBlockPos(x, y, z);
+            Vector3i blockPos = getChunkType().calcBlockPos(x, y, z);
             return chunk.setLiquid(blockPos, newState, oldState);
         }
         return false;
@@ -175,12 +180,12 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public LiquidData getLiquid(int x, int y, int z) {
-        y = TeraMath.clamp(y, 0, Chunk.SIZE_Y - 1);
+//        y = TeraMath.clamp(y, 0, getChunkType().sizeY - 1);
 
-        Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
+        Vector3i chunkPos = getChunkType().calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
         if (chunk != null) {
-            Vector3i blockPos = TeraMath.calcBlockPos(x, y, z);
+            Vector3i blockPos = getChunkType().calcBlockPos(x, y, z);
             return chunk.getLiquid(blockPos);
         }
         return new LiquidData();
@@ -188,14 +193,14 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public Block getBlock(int x, int y, int z) {
-        if (y >= Chunk.SIZE_Y || y < 0) {
-            return BlockManager.getInstance().getAir();
-        }
+//        if (y >= getChunkType().sizeY || y < 0) {
+//            return BlockManager.getInstance().getAir();
+//        }
 
-        Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
+        Vector3i chunkPos = getChunkType().calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
         if (chunk != null) {
-            Vector3i blockPos = TeraMath.calcBlockPos(x, y, z);
+            Vector3i blockPos = getChunkType().calcBlockPos(x, y, z);
             return chunk.getBlock(blockPos);
         }
         return BlockManager.getInstance().getAir();
@@ -203,12 +208,12 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public byte getLight(int x, int y, int z) {
-        y = TeraMath.clamp(y, 0, Chunk.SIZE_Y - 1);
+//        y = TeraMath.clamp(y, 0, getChunkType().sizeY - 1);
 
-        Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
+        Vector3i chunkPos = getChunkType().calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
         if (chunk != null) {
-            Vector3i blockPos = TeraMath.calcBlockPos(x, y, z);
+            Vector3i blockPos = getChunkType().calcBlockPos(x, y, z);
             return chunk.getLight(blockPos);
         }
         return 0;
@@ -216,12 +221,12 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public byte getSunlight(int x, int y, int z) {
-        y = TeraMath.clamp(y, 0, Chunk.SIZE_Y - 1);
+//        y = TeraMath.clamp(y, 0, getChunkType().sizeY - 1);
 
-        Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
+        Vector3i chunkPos = getChunkType().calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
         if (chunk != null) {
-            Vector3i blockPos = TeraMath.calcBlockPos(x, y, z);
+            Vector3i blockPos = getChunkType().calcBlockPos(x, y, z);
             return chunk.getSunlight(blockPos);
         }
         return 0;
@@ -229,12 +234,12 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
 
     @Override
     public byte getTotalLight(int x, int y, int z) {
-        y = TeraMath.clamp(y, 0, Chunk.SIZE_Y - 1);
+//        y = TeraMath.clamp(y, 0, getChunkType().sizeY - 1);
 
-        Vector3i chunkPos = TeraMath.calcChunkPos(x, y, z);
+        Vector3i chunkPos = getChunkType().calcChunkPos(x, y, z);
         Chunk chunk = chunkProvider.getChunk(chunkPos);
         if (chunk != null) {
-            Vector3i blockPos = TeraMath.calcBlockPos(x, y, z);
+            Vector3i blockPos = getChunkType().calcBlockPos(x, y, z);
             return (byte) Math.max(chunk.getSunlight(blockPos), chunk.getLight(blockPos));
         }
         return 0;

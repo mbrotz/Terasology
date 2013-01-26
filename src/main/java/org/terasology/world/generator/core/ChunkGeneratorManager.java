@@ -20,8 +20,9 @@ import java.util.List;
 
 import org.terasology.math.Vector3i;
 import org.terasology.world.WorldBiomeProvider;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.BaseChunkGenerator;
 
 /**
@@ -31,6 +32,8 @@ public interface ChunkGeneratorManager {
 
     List<BaseChunkGenerator> getBaseChunkGenerators();
 
+    void setChunkType(ChunkType chunkType);
+    
     void setWorldSeed(String seed);
 
     void setWorldBiomeProvider(WorldBiomeProvider biomeProvider);
@@ -39,6 +42,6 @@ public interface ChunkGeneratorManager {
 
     Chunk generateChunk(Vector3i pos);
 
-    void secondPassChunk(Vector3i chunkPos, WorldView view);
+    void secondPassChunk(Vector3i chunkPos, ClassicWorldView view);
 
 }

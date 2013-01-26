@@ -22,29 +22,33 @@ import org.junit.Before;
 import org.junit.Test;
 import org.terasology.math.Region3i;
 import org.terasology.math.Vector3i;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockUri;
 import org.terasology.world.block.family.SymmetricFamily;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * @author Immortius
  */
 public class LiquidSimulationTest {
 
-    WorldView view;
+    ClassicWorldView view;
     Block air;
     Block dirt;
+    ChunkType type;
 
     @Before
     public void setup() {
-        Chunk[] chunks = new Chunk[] {new Chunk(new Vector3i(-1,0,-1)), new Chunk(new Vector3i(0,0,-1)), new Chunk(new Vector3i(1,0,-1)),
-                new Chunk(new Vector3i(-1,0,0)), new Chunk(new Vector3i(0,0,0)), new Chunk(new Vector3i(1,0,0)),
-                new Chunk(new Vector3i(-1,0,1)), new Chunk(new Vector3i(0,0,1)), new Chunk(new Vector3i(1,0,1))};
+        type = ChunkType.Classic;
+        
+        Chunk[][] chunks = { {new Chunk(type, new Vector3i(-1,0,-1)), new Chunk(type, new Vector3i(0,0,-1)), new Chunk(type, new Vector3i(1,0,-1)),
+                new Chunk(type, new Vector3i(-1,0,0)), new Chunk(type, new Vector3i(0,0,0)), new Chunk(type, new Vector3i(1,0,0)),
+                new Chunk(type, new Vector3i(-1,0,1)), new Chunk(type, new Vector3i(0,0,1)), new Chunk(type, new Vector3i(1,0,1))} };
 
-        view = new WorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1,1,1));
+        view = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1,1,1), type);
 
         air = BlockManager.getInstance().getBlock((byte)0);
         dirt = new Block();
@@ -53,8 +57,8 @@ public class LiquidSimulationTest {
         dirt.setId((byte) 1);
         BlockManager.getInstance().addBlockFamily(new SymmetricFamily(dirt.getURI(), dirt));
 
-        for (int x = -Chunk.SIZE_X + 1; x < 2 * Chunk.SIZE_X; ++x) {
-            for (int z = -Chunk.SIZE_Z + 1; z < 2 * Chunk.SIZE_Z; ++z) {
+        for (int x = -type.sizeX + 1; x < 2 * type.sizeX; ++x) {
+            for (int z = -type.sizeZ + 1; z < 2 * type.sizeZ; ++z) {
                 view.setBlock(x, 0, z, dirt, air);
             }
         }

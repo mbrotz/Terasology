@@ -29,6 +29,7 @@ import org.terasology.world.block.BlockUri;
 import org.terasology.world.block.family.SymmetricFamily;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.lighting.InternalLightProcessor;
 
 /**
@@ -38,9 +39,11 @@ public class InternalLightGeneratorTest {
 
     Block airBlock;
     Block solidBlock;
+    ChunkType type;
 
     @Before
     public void setup() {
+        type = ChunkType.Classic;
         airBlock = BlockManager.getInstance().getBlock((byte)0);
         solidBlock = new Block();
         solidBlock.setDisplayName("Stone");
@@ -56,17 +59,17 @@ public class InternalLightGeneratorTest {
     @Test
     public void unblockedSunlightPropagation() {
 
-        Chunk chunk = new Chunk(0,0,0);
+        Chunk chunk = new Chunk(type, 0,0,0);
         InternalLightProcessor.generateInternalLighting(chunk);
 
-        for (Vector3i pos : Region3i.createFromMinAndSize(Vector3i.zero(), new Vector3i(Chunk.SIZE_X, Chunk.SIZE_Y, Chunk.SIZE_Z))) {
+        for (Vector3i pos : Region3i.createFromMinAndSize(Vector3i.zero(), new Vector3i(type.sizeX, type.sizeY, type.sizeZ))) {
             assertEquals(Chunk.MAX_LIGHT, chunk.getSunlight(pos));
         }
     }
 
     @Test
     public void blockedSunlightPropagation() {
-        Chunk chunk = new Chunk(0,0,0);
+        Chunk chunk = new Chunk(type, 0,0,0);
         chunk.setBlock(0, 15, 0, solidBlock);
         InternalLightProcessor.generateInternalLighting(chunk);
 
@@ -78,14 +81,14 @@ public class InternalLightGeneratorTest {
 
     @Test
     public void pinholeSunlightPropagation() {
-        Chunk chunk = new Chunk(0,0,0);
-        for (Vector3i pos : Region3i.createFromMinAndSize(new Vector3i(0, Chunk.SIZE_Y - 1,0), new Vector3i(Chunk.SIZE_X,1, Chunk.SIZE_Z))) {
+        Chunk chunk = new Chunk(type, 0,0,0);
+        for (Vector3i pos : Region3i.createFromMinAndSize(new Vector3i(0, type.sizeY - 1,0), new Vector3i(type.sizeX,1, type.sizeZ))) {
             chunk.setBlock(pos, solidBlock);
         }
-        chunk.setBlock(8, Chunk.SIZE_Y - 1, 8, airBlock);
+        chunk.setBlock(8, type.sizeY - 1, 8, airBlock);
         InternalLightProcessor.generateInternalLighting(chunk);
 
-        for (Vector3i pos : Region3i.createFromMinAndSize(Vector3i.zero(), new Vector3i(Chunk.SIZE_X, Chunk.SIZE_Y - 1, Chunk.SIZE_Z))) {
+        for (Vector3i pos : Region3i.createFromMinAndSize(Vector3i.zero(), new Vector3i(type.sizeX, type.sizeY - 1, type.sizeZ))) {
             int dist = TeraMath.fastAbs(pos.x - 8) + TeraMath.fastAbs(pos.z - 8);
             int expected = Math.max(Chunk.MAX_LIGHT - dist, 0);
             assertEquals("Incorrect at " + pos, expected, chunk.getSunlight(pos));
@@ -95,7 +98,7 @@ public class InternalLightGeneratorTest {
 
     @Test
     public void sunlightPropagatesUpward() {
-        Chunk chunk = new Chunk(0,0,0);
+        Chunk chunk = new Chunk(type, 0,0,0);
         for (Vector3i pos : Region3i.createFromCenterExtents(new Vector3i(9,9,9), Vector3i.one())) {
             chunk.setBlock(pos, solidBlock);
         }

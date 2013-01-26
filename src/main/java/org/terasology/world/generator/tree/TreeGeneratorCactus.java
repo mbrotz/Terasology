@@ -16,7 +16,7 @@
 package org.terasology.world.generator.tree;
 
 import org.terasology.utilities.FastRandom;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 
@@ -28,7 +28,7 @@ import org.terasology.world.block.management.BlockManager;
 public class TreeGeneratorCactus extends TreeGenerator {
 
     @Override
-    public void generate(WorldView view, FastRandom rand, int posX, int posY, int posZ) {
+    public void generate(ClassicWorldView view, FastRandom rand, int posX, int posY, int posZ) {
         for (int y = posY; y < posY + 3; y++) {
             view.setBlock(posX, y, posZ, BlockManager.getInstance().getBlock("engine:Cactus"), view.getBlock(posX, y, posZ));
         }

@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package org.terasology.world.localChunkProvider;
+package org.terasology.world.chunks.provider;
 
 import org.terasology.math.Vector3i;
-import org.terasology.world.chunks.ChunkProvider;
 
 /**
  * @author Immortius

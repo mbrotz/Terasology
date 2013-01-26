@@ -14,21 +14,31 @@
  * limitations under the License.
  */
 
-package org.terasology.world.chunks;
+package org.terasology.world.chunks.provider;
 
 import org.terasology.math.Vector3i;
 
 /**
  * @author Immortius
  */
-public interface ChunkStore {
-    public Chunk get(Vector3i position);
+public class ShutdownTask implements ChunkTask {
 
-    public void put(Chunk c);
+    @Override
+    public void enact() {
+    }
 
-    public boolean contains(Vector3i position);
+    @Override
+    public boolean isShutdownRequest() {
+        return true;
+    }
 
-    public float size();
+    @Override
+    public Vector3i getPosition() {
+        return Vector3i.zero();
+    }
 
-    void dispose();
+    @Override
+    public ChunkProvider getProvider() {
+        return null;
+    }
 }

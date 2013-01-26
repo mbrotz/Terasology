@@ -31,15 +31,14 @@ import org.terasology.entitySystem.RegisterComponentSystem;
 import org.terasology.game.CoreRegistry;
 import org.terasology.math.Region3i;
 import org.terasology.math.Side;
-import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.world.BlockChangedEvent;
 import org.terasology.world.WorldProvider;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
-import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.ChunkReadyEvent;
+import org.terasology.world.chunks.ChunkType;
+import org.terasology.world.chunks.provider.ChunkReadyEvent;
 
 import com.google.common.collect.Queues;
 
@@ -59,6 +58,7 @@ public class LiquidSimulator implements EventHandlerSystem {
     private static final Logger logger = LoggerFactory.getLogger(LiquidSimulator.class);
 
     private WorldProvider world;
+    private ChunkType chunkType;
     private Block air;
     private Block grass;
     private Block snow;
@@ -71,6 +71,7 @@ public class LiquidSimulator implements EventHandlerSystem {
     @Override
     public void initialise() {
         world = CoreRegistry.get(WorldProvider.class);
+        chunkType = world.getChunkType();
         air = BlockManager.getInstance().getAir();
         grass = BlockManager.getInstance().getBlock("engine:Grass");
         snow = BlockManager.getInstance().getBlock("engine:Snow");
@@ -163,7 +164,7 @@ public class LiquidSimulator implements EventHandlerSystem {
         }
     }
 
-    public void simulate(Vector3i blockPos, WorldView view) {
+    public void simulate(Vector3i blockPos, ClassicWorldView view) {
         Block block = view.getBlock(blockPos);
         LiquidData current = view.getLiquid(blockPos);
         LiquidData newState = calcStateFor(blockPos, view);
@@ -188,7 +189,7 @@ public class LiquidSimulator implements EventHandlerSystem {
         }
     }
 
-    public static LiquidData calcStateFor(Vector3i pos, WorldView worldView) {
+    public static LiquidData calcStateFor(Vector3i pos, ClassicWorldView worldView) {
         Block block = worldView.getBlock(pos);
         if (isLiquidBlocking(block)) {
             return new LiquidData();
@@ -207,7 +208,7 @@ public class LiquidSimulator implements EventHandlerSystem {
 
         LiquidData h1 = new LiquidData();
         LiquidData h2 = new LiquidData();
-        for (Side side : Side.horizontalSides()) {
+        for (Side side : Side.getHorizontalSides()) {
             Vector3i adjPos = new Vector3i(side.getVector3i());
             adjPos.add(pos);
             Block supportingBlock = worldView.getBlock(adjPos.x, adjPos.y - 1, adjPos.z);
@@ -256,14 +257,14 @@ public class LiquidSimulator implements EventHandlerSystem {
             {0, 0, 1, 1, 1, 1, 2, 2}
     };
 
-    private static LiquidData getOutgoingLiquid(Vector3i pos, WorldView worldView) {
+    private static LiquidData getOutgoingLiquid(Vector3i pos, ClassicWorldView worldView) {
         LiquidData currentState = worldView.getLiquid(pos);
         if (currentState.getDepth() == 0) {
             return new LiquidData();
         }
 
         int availableSpaces = 0;
-        for (Side side : Side.horizontalSides()) {
+        for (Side side : Side.getHorizontalSides()) {
             Vector3i adjPos = new Vector3i(pos);
             adjPos.add(side.getVector3i());
             Block block = worldView.getBlock(pos);
@@ -302,7 +303,7 @@ public class LiquidSimulator implements EventHandlerSystem {
             if (world.getTime() < waitForTime) {
                 blockQueue.offer(this);
             } else if (world.isBlockActive(blockPos)) {
-                WorldView view = world.getWorldViewAround(TeraMath.calcChunkPos(blockPos));
+                ClassicWorldView view = world.getWorldViewAround(chunkType.calcChunkPos(blockPos));
                 if (view != null && view.isValidView()) {
                     simulate(blockPos, view);
                 }
@@ -324,9 +325,9 @@ public class LiquidSimulator implements EventHandlerSystem {
 
         @Override
         public void run() {
-            WorldView view = world.getLocalView(chunkPos);
+            ClassicWorldView view = world.getLocalView(chunkPos);
             if (view != null) {
-                for (Vector3i pos : Region3i.createFromMinAndSize(new Vector3i(-1, 0, -1), new Vector3i(Chunk.SIZE_X + 2, Chunk.SIZE_Y, Chunk.SIZE_Z + 2))) {
+                for (Vector3i pos : Region3i.createFromMinAndSize(new Vector3i(-1, 0, -1), new Vector3i(chunkType.sizeX + 2, chunkType.sizeY, chunkType.sizeZ + 2))) {
                     LiquidData state = view.getLiquid(pos);
                     LiquidData newState = calcStateFor(pos, view);
                     if (!newState.equals(state)) {

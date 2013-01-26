@@ -19,6 +19,7 @@ package org.terasology.world.generator;
 import java.util.Map;
 
 import org.terasology.world.WorldBiomeProvider;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * @author Immortius

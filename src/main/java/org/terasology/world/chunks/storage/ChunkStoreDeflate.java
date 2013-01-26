@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.terasology.world.chunks.store;
+package org.terasology.world.chunks.storage;
 
 
 import java.io.ByteArrayInputStream;
@@ -29,7 +29,6 @@ import java.util.zip.InflaterInputStream;
 
 import org.terasology.math.Vector3i;
 import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.ChunkStore;
 
 public class ChunkStoreDeflate implements ChunkStore, Serializable {
     ConcurrentMap<Vector3i, byte[]> map = new ConcurrentHashMap<Vector3i, byte[]>();

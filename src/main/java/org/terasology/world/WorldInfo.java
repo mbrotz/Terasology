@@ -16,12 +16,15 @@
 
 package org.terasology.world;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import com.google.gson.GsonBuilder;
 import org.terasology.config.ModConfig;
 import org.terasology.game.CoreRegistry;
 import org.terasology.logic.mod.Mod;
 import org.terasology.logic.mod.ModManager;
+import org.terasology.utilities.FastRandom;
+import org.terasology.world.chunks.ChunkType;
 
 import java.io.File;
 import java.io.FileReader;
@@ -42,6 +45,7 @@ public class WorldInfo {
     private String seed = "";
     private long time = 0;
     private Map<String, Byte> blockIdMap = Maps.newHashMap();
+    private ChunkType chunkType = ChunkType.Classic;
     private String[] chunkGenerators = new String[]{};
     private String gameType = null;
     private ModConfig modConfiguration = new ModConfig();
@@ -49,12 +53,15 @@ public class WorldInfo {
     public WorldInfo() {
     }
 
-    public WorldInfo(String title, String seed, long time, String[] chunkGenerators, String gameType, ModConfig modConfig) {
+    public WorldInfo(String title, String seed, long time, ChunkType chunkType, String[] chunkGenerators, String gameType, ModConfig modConfig) {
         if (title != null) {
             this.title = title;
         }
         if (seed != null) {
             this.seed = seed;
+        }
+        if (chunkType != null) {
+            this.chunkType = chunkType;
         }
         if (chunkGenerators != null) {
             this.chunkGenerators = chunkGenerators;
@@ -99,6 +106,10 @@ public class WorldInfo {
         }
     }
 
+    public boolean hasSeed() {
+        return seed != null && !seed.isEmpty();
+    }
+    
     public String getSeed() {
         return seed;
     }
@@ -107,6 +118,15 @@ public class WorldInfo {
         if (seed != null) {
             this.seed = seed;
         }
+    }
+    
+    public void setRandomSeed() {
+        setRandomSeed(32);
+    }
+    
+    public void setRandomSeed(int length) {
+        Preconditions.checkArgument(length > 0, "The parameter 'length' must be greater than zero");
+        setSeed((new FastRandom()).randomCharacterString(length));
     }
 
     public long getTime() {
@@ -127,6 +147,15 @@ public class WorldInfo {
 
     public void setBlockIdMap(Map<String, Byte> blockIdMap) {
         this.blockIdMap = blockIdMap;
+    }
+    
+    public ChunkType getChunkType() {
+        return chunkType;
+    }
+    
+    public void setChunkType(ChunkType value) {
+        Preconditions.checkNotNull(value, "The parameter 'value' must not be null");
+        this.chunkType = value;
     }
 
     public String[] getChunkGenerators() {

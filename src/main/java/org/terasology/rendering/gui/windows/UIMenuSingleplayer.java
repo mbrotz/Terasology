@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.terasology.game.CoreRegistry;
 import org.terasology.game.GameEngine;
 import org.terasology.game.modes.StateLoading;
-import org.terasology.game.modes.StateSinglePlayer;
 import org.terasology.game.types.GameType;
 import org.terasology.game.types.SurvivalType;
 import org.terasology.logic.manager.Config;

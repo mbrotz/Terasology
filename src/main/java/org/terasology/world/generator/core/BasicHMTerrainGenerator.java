@@ -4,7 +4,6 @@ package org.terasology.world.generator.core;
 
 import java.util.Map;
 
-import javassist.bytecode.stackmap.TypeData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.world.WorldBiomeProvider;
@@ -12,6 +11,7 @@ import org.terasology.utilities.HeightmapFileReader;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.ChunkGenerator;
 import org.terasology.world.liquid.LiquidData;
 import org.terasology.world.liquid.LiquidType;
@@ -74,31 +74,33 @@ public class BasicHMTerrainGenerator implements ChunkGenerator {
      * @param c
      */
     public void generateChunk(Chunk c){
+        
+        final ChunkType chunkType = c.getChunkType();
 
-        int hm_x = (((c.getChunkWorldPosX()/Chunk.SIZE_X)%512)+512)%512;
-        int hm_z = (((c.getChunkWorldPosZ()/Chunk.SIZE_Z)%512)+512)%512;
+        int hm_x = (((c.getChunkWorldPosX()/chunkType.sizeX)%512)+512)%512;
+        int hm_z = (((c.getChunkWorldPosZ()/chunkType.sizeZ)%512)+512)%512;
 
-        double scaleFactor = 0.05*Chunk.SIZE_Y;
+        double scaleFactor = 0.05*chunkType.sizeY;
 
         double p00 = heightmap[hm_x][hm_z]*scaleFactor;
         double p10 = heightmap[(hm_x-1+512)%512][(hm_z)%512]*scaleFactor;
         double p11 = heightmap[(hm_x-1+512)%512][(hm_z+1+512)%512]*scaleFactor;
         double p01 = heightmap[(hm_x)%512][(hm_z+1+512)%512]*scaleFactor;
 
-        for (int x = 0; x < Chunk.SIZE_X; x++) {
-            for (int z = 0; z < Chunk.SIZE_Z; z++) {
+        for (int x = 0; x < chunkType.sizeX; x++) {
+            for (int z = 0; z < chunkType.sizeZ; z++) {
                 WorldBiomeProvider.Biome type = biomeProvider.getBiomeAt(
                         c.getBlockWorldPosX(x), c.getBlockWorldPosZ(z));
 
                 //calculate avg height
-                double interpolatedHeight = lerp(x/(double)Chunk.SIZE_X,lerp(z/(double)Chunk.SIZE_Z,p10,p11), lerp(z/(double)Chunk.SIZE_Z,p00,p01));
+                double interpolatedHeight = lerp(x/(double)chunkType.sizeX,lerp(z/(double)chunkType.sizeZ,p10,p11), lerp(z/(double)chunkType.sizeZ,p00,p01));
 
 
                 //Scale the height to fit one chunk (suppose we have max height 20 on the Heigthmap
                 //ToDo: Change this formula in later implementation of vertical chunks
                 double threshold = Math.floor(interpolatedHeight);
 
-                for (int y = Chunk.SIZE_Y-1; y >= 0; y--) {
+                for (int y = chunkType.sizeY-1; y >= 0; y--) {
                     if (y == 0) { // The very deepest layer of the world is an
                         // indestructible mantle
                         c.setBlock(x, y, z, mantle);
@@ -106,19 +108,17 @@ public class BasicHMTerrainGenerator implements ChunkGenerator {
                     } else if (y<threshold){
                         c.setBlock(x,y,z,stone);
                     } else if (y==threshold){
-                        if (y<Chunk.SIZE_Y*0.05+1){
+                        if (y<chunkType.sizeY*0.05+1){
                             c.setBlock(x,y,z,sand);
-                        } else if (y<Chunk.SIZE_Y*0.05*12){
+                        } else if (y<chunkType.sizeY*0.05*12){
                             c.setBlock(x,y,z,grass);
                         } else{
                             c.setBlock(x,y,z,snow);
                         }
                     } else{
-                        if (y <= Chunk.SIZE_Y/20 ) { // Ocean
+                        if (y <= chunkType.sizeY/20 ) { // Ocean
                             c.setBlock(x, y, z, water);
-                            c.setLiquid(x, y, z, new LiquidData(LiquidType.WATER,
-                                    Chunk.MAX_LIQUID_DEPTH));
-
+                            c.setLiquid(x, y, z, new LiquidData(LiquidType.WATER, Chunk.MAX_LIQUID_DEPTH));
                         } else {
                             c.setBlock(x,y,z,air);
                         }

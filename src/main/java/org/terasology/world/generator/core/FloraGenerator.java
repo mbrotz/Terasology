@@ -23,6 +23,7 @@ import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.ChunkGenerator;
 
 /**
@@ -64,10 +65,11 @@ public class FloraGenerator implements ChunkGenerator {
     @Override
     public void generateChunk(Chunk c) {
         // TODO: Better seeding mechanism
+        final ChunkType chunkType = c.getChunkType();
         FastRandom random = new FastRandom(worldSeed.hashCode() ^ (c.getPos().x + 39L * (c.getPos().y + 39L * c.getPos().z)));
-        for (int y = 0; y < Chunk.SIZE_Y; y++) {
-            for (int x = 0; x < Chunk.SIZE_X; x++) {
-                for (int z = 0; z < Chunk.SIZE_Z; z++) {
+        for (int y = 0; y < chunkType.sizeY; y++) {
+            for (int x = 0; x < chunkType.sizeX; x++) {
+                for (int z = 0; z < chunkType.sizeZ; z++) {
                     generateGrassAndFlowers(c, x, y, z, random);
                 }
             }

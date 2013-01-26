@@ -10,6 +10,7 @@ import org.terasology.world.block.BlockUri;
 import org.terasology.world.block.family.SymmetricFamily;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 
 public class ChunkTest {
@@ -18,7 +19,7 @@ public class ChunkTest {
 
     @Before
     public void setup() {
-        chunk = new Chunk(new Vector3i(0,0,0));
+        chunk = new Chunk(ChunkType.Classic, new Vector3i(0,0,0));
     }
 
     @Test

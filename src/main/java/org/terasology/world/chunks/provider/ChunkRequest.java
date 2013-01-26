@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.terasology.world.localChunkProvider;
+package org.terasology.world.chunks.provider;
 
 import org.terasology.math.Region3i;
 

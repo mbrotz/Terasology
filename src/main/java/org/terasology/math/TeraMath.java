@@ -23,7 +23,6 @@ import javax.vecmath.Matrix4f;
 import javax.vecmath.Vector3f;
 
 import org.lwjgl.BufferUtils;
-import org.terasology.world.chunks.Chunk;
 
 /**
  * Collection of math functions.
@@ -205,114 +204,6 @@ public final class TeraMath {
     }
 
     /**
-     * Returns the chunk position of a given coordinate.
-     *
-     * @param x The X-coordinate of the block
-     * @return The X-coordinate of the chunk
-     */
-    public static int calcChunkPosX(int x, int chunkPowerX) {
-        return (x >> chunkPowerX);
-    }
-
-    public static int calcChunkPosX(int x) {
-        return calcChunkPosX(x, Chunk.POWER_X);
-    }
-
-    /**
-     * Returns the chunk position of a given coordinate
-     *
-     * @param y
-     * @return The Y-coordinate of the chunk
-     */
-    public static int calcChunkPosY(int y) {
-        // If we ever have multiple vertical chunks, change this
-        return 0;
-    }
-
-    /**
-     * Returns the chunk position of a given coordinate.
-     *
-     * @param z The Z-coordinate of the block
-     * @return The Z-coordinate of the chunk
-     */
-    public static int calcChunkPosZ(int z, int chunkPowerZ) {
-        return (z >> chunkPowerZ);
-    }
-
-    public static int calcChunkPosZ(int z) {
-        return calcChunkPosZ(z, Chunk.POWER_Z);
-    }
-
-    public static Vector3i calcChunkPos(Vector3i pos, Vector3i chunkPower) {
-        return calcChunkPos(pos.x, pos.y, pos.z, chunkPower);
-    }
-
-    public static Vector3i calcChunkPos(Vector3i pos) {
-        return calcChunkPos(pos.x, pos.y, pos.z);
-    }
-
-    public static Vector3i calcChunkPos(int x, int y, int z) {
-        return calcChunkPos(x, y, z, Chunk.CHUNK_POWER);
-    }
-
-    public static Vector3i calcChunkPos(int x, int y, int z, Vector3i chunkPower) {
-        return new Vector3i(calcChunkPosX(x, chunkPower.x), calcChunkPosY(y), calcChunkPosZ(z, chunkPower.z));
-    }
-
-    /**
-     * Returns the internal position of a block within a chunk.
-     *
-     * @param blockX The X-coordinate of the block in the world
-     * @return The X-coordinate of the block within the chunk
-     */
-    public static int calcBlockPosX(int blockX, int chunkPosFilterX) {
-        return blockX & chunkPosFilterX;
-    }
-
-
-    public static int calcBlockPosX(int blockX) {
-        return calcBlockPosX(blockX, Chunk.INNER_CHUNK_POS_FILTER_X);
-    }
-
-    public static int calcBlockPosY(int blockY) {
-        return blockY;
-    }
-
-    /**
-     * Returns the internal position of a block within a chunk.
-     *
-     * @param blockZ The Z-coordinate of the block in the world
-     * @return The Z-coordinate of the block within the chunk
-     */
-    public static int calcBlockPosZ(int blockZ, int chunkPosFilterZ) {
-        return blockZ & chunkPosFilterZ;
-    }
-
-    public static int calcBlockPosZ(int blockZ) {
-        return calcBlockPosZ(blockZ, Chunk.INNER_CHUNK_POS_FILTER_Z);
-    }
-
-    public static Vector3i calcBlockPos(int x, int y, int z) {
-        return calcBlockPos(x,y,z, Chunk.INNER_CHUNK_POS_FILTER);
-    }
-
-    public static Vector3i calcBlockPos(int x, int y, int z, Vector3i chunkFilterSize) {
-        return new Vector3i(calcBlockPosX(x, chunkFilterSize.x), calcBlockPosY(y), calcBlockPosZ(z, chunkFilterSize.z));
-    }
-
-    public static Region3i getChunkRegionAroundBlockPos(Vector3i pos, int extent) {
-        Vector3i minPos = new Vector3i(-extent, 0, -extent);
-        minPos.add(pos);
-        Vector3i maxPos = new Vector3i(extent, 0, extent);
-        maxPos.add(pos);
-
-        Vector3i minChunk = TeraMath.calcChunkPos(minPos);
-        Vector3i maxChunk = TeraMath.calcChunkPos(maxPos);
-
-        return Region3i.createFromMinMax(minChunk, maxChunk);
-    }
-
-    /**
      * Lowest power of two greater or equal to val
      * <p/>
      * For values &lt;= 0 returns 0
@@ -376,10 +267,10 @@ public final class TeraMath {
 
     public static Side getSecondaryPlacementDirection(Vector3f direction, Vector3f normal) {
         Side surfaceDir = Side.inDirection(normal);
-        Vector3f attachDir = surfaceDir.reverse().getVector3i().toVector3f();
+        Vector3f attachDir = surfaceDir.getReverse().getVector3i().toVector3f();
         Vector3f rawDirection = new Vector3f(direction);
         float dot = rawDirection.dot(attachDir);
         rawDirection.sub(new Vector3f(dot * attachDir.x, dot * attachDir.y, dot * attachDir.z));
-        return Side.inDirection(rawDirection.x, rawDirection.y, rawDirection.z).reverse();
+        return Side.inDirection(rawDirection.x, rawDirection.y, rawDirection.z).getReverse();
     }
 }

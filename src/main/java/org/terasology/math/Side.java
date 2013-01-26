@@ -15,8 +15,6 @@
  */
 package org.terasology.math;
 
-import java.util.EnumMap;
-
 import javax.vecmath.Vector3f;
 
 /**
@@ -25,55 +23,167 @@ import javax.vecmath.Vector3f;
  * @author Immortius <immortius@gmail.com>
  * @author Benjamin Glatzel <benjamin.glatzel@me.com>
  * @author Rasmus 'Cervator' Praestholm <cervator@gmail.com>
+ * @author Manuel Brotz <manu.brotz@gmx.ch>
  */
 public enum Side {
-    TOP(Vector3i.up(), false),
-    LEFT(new Vector3i(-1, 0, 0), true),
-    RIGHT(new Vector3i(1, 0, 0), true),
-    FRONT(new Vector3i(0, 0, -1), true),
-    BACK(new Vector3i(0, 0, 1), true),
-    BOTTOM(Vector3i.down(), false);
+    TOP(Vector3i.up()) {
+        @Override
+        public boolean isHorizontal() {
+            return false;
+        }
 
-    private static EnumMap<Side, Side> reverseMap;
+        @Override
+        public Side getReverse() {
+            return BOTTOM;
+        }
+
+        @Override
+        public Side getClockwise() {
+            return TOP;
+        }
+
+        @Override
+        public Side getAntiClockwise() {
+            return TOP;
+        }
+        
+        @Override
+        public Side rotateClockwise(int steps) {
+            return this;
+        }
+    },
+    LEFT(new Vector3i(-1, 0, 0)) {
+        @Override
+        public boolean isHorizontal() {
+            return true;
+        }
+
+        @Override
+        public Side getReverse() {
+            return RIGHT;
+        }
+
+        @Override
+        public Side getClockwise() {
+            return FRONT;
+        }
+
+        @Override
+        public Side getAntiClockwise() {
+            return BACK;
+        }
+    },
+    RIGHT(new Vector3i(1, 0, 0)) {
+        @Override
+        public boolean isHorizontal() {
+            return true;
+        }
+
+        @Override
+        public Side getReverse() {
+            return LEFT;
+        }
+
+        @Override
+        public Side getClockwise() {
+            return BACK;
+        }
+
+        @Override
+        public Side getAntiClockwise() {
+            return FRONT;
+        }
+    },
+    FRONT(new Vector3i(0, 0, -1)) {
+        @Override
+        public boolean isHorizontal() {
+            return true;
+        }
+
+        @Override
+        public Side getReverse() {
+            return BACK;
+        }
+
+        @Override
+        public Side getClockwise() {
+            return RIGHT;
+        }
+
+        @Override
+        public Side getAntiClockwise() {
+            return LEFT;
+        }
+    },
+    BACK(new Vector3i(0, 0, 1)) {
+        @Override
+        public boolean isHorizontal() {
+            return true;
+        }
+
+        @Override
+        public Side getReverse() {
+            return FRONT;
+        }
+
+        @Override
+        public Side getClockwise() {
+            return LEFT;
+        }
+
+        @Override
+        public Side getAntiClockwise() {
+            return RIGHT;
+        }
+    },
+    BOTTOM(Vector3i.down()) {
+        @Override
+        public boolean isHorizontal() {
+            return false;
+        }
+
+        @Override
+        public Side getReverse() {
+            return TOP;
+        }
+
+        @Override
+        public Side getClockwise() {
+            return BOTTOM;
+        }
+
+        @Override
+        public Side getAntiClockwise() {
+            return BOTTOM;
+        }
+        
+        @Override
+        public Side rotateClockwise(int steps) {
+            return this;
+        }
+    };
+
     private static Side[] horizontalSides;
-    private static EnumMap<Side, Side> clockwiseSide;
-    private static EnumMap<Side, Side> antiClockwiseSide;
 
     static {
-        reverseMap = new EnumMap<Side, Side>(Side.class);
-        reverseMap.put(TOP, BOTTOM);
-        reverseMap.put(LEFT, RIGHT);
-        reverseMap.put(RIGHT, LEFT);
-        reverseMap.put(FRONT, BACK);
-        reverseMap.put(BACK, FRONT);
-        reverseMap.put(BOTTOM, TOP);
-
-        clockwiseSide = new EnumMap<Side, Side>(Side.class);
-        clockwiseSide.put(Side.FRONT, Side.RIGHT);
-        clockwiseSide.put(Side.RIGHT, Side.BACK);
-        clockwiseSide.put(Side.BACK, Side.LEFT);
-        clockwiseSide.put(Side.LEFT, Side.FRONT);
-        clockwiseSide.put(Side.TOP, Side.TOP);
-        clockwiseSide.put(Side.BOTTOM, Side.BOTTOM);
-
-        antiClockwiseSide = new EnumMap<Side, Side>(Side.class);
-        antiClockwiseSide.put(Side.FRONT, Side.LEFT);
-        antiClockwiseSide.put(Side.RIGHT, Side.FRONT);
-        antiClockwiseSide.put(Side.BACK, Side.RIGHT);
-        antiClockwiseSide.put(Side.LEFT, Side.BACK);
-        antiClockwiseSide.put(Side.TOP, Side.TOP);
-        antiClockwiseSide.put(Side.BOTTOM, Side.BOTTOM);
-
         horizontalSides = new Side[]{LEFT, RIGHT, FRONT, BACK};
     }
 
     /**
      * @return The horizontal sides, for iteration
      */
-    public static Side[] horizontalSides() {
+    public static Side[] getHorizontalSides() {
         return horizontalSides;
     }
 
+    /**
+     * Determines which direction the player is facing
+     *
+     * @param x right/left
+     * @param y top/bottom
+     * @param z back/front
+     * @return Side enum with the appropriate direction
+     */
     public static Side inDirection(int x, int y, int z) {
         if (TeraMath.fastAbs(x) > TeraMath.fastAbs(y)) {
             if (TeraMath.fastAbs(x) > TeraMath.fastAbs(z)) {
@@ -85,6 +195,12 @@ public enum Side {
         return (z > 0) ? BACK : FRONT;
     }
 
+    /**
+     * Determines which direction the player is facing
+     *
+     * @param dir Direction
+     * @return Side enum with the appropriate direction
+     */
     public static Side inDirection(Vector3f dir) {
         return inDirection(dir.x, dir.y, dir.z);
     }
@@ -122,12 +238,10 @@ public enum Side {
         return (z > 0) ? BACK : FRONT;
     }
 
-    private Vector3i vector3iDir;
-    private boolean horizontal;
+    private final Vector3i vector3iDir;
 
-    Side(Vector3i vector3i, boolean horizontal) {
+    private Side(Vector3i vector3i) {
         this.vector3iDir = vector3i;
-        this.horizontal = horizontal;
     }
 
     /**
@@ -140,33 +254,41 @@ public enum Side {
     /**
      * @return Whether this is one of the horizontal directions.
      */
-    public boolean isHorizontal() {
-        return horizontal;
-    }
+    public abstract boolean isHorizontal();
 
     /**
      * @return The opposite side to this side.
      */
-    public Side reverse() {
-        return reverseMap.get(this);
-    }
+    public abstract Side getReverse();
+    
+    /**
+     * @return The clockwise rotated side to this side.
+     */
+    public abstract Side getClockwise();
+    
+    /**
+     * @return The anti clockwise rotated side to this side.
+     */
+    public abstract Side getAntiClockwise();
 
+    /**
+     * Rotates this side clockwise by the specified number of steps.
+     * @param steps The number of rotation steps
+     * @return The rotated side
+     */
     public Side rotateClockwise(int steps) {
-        if (!isHorizontal()) return this;
-        if (steps < 0) {
+        if (steps < 0)
             steps = -steps + 2;
-        }
         steps = steps % 4;
         switch (steps) {
             case 1:
-                return clockwiseSide.get(this);
+                return getClockwise();
             case 2:
-                return reverseMap.get(this);
+                return getReverse();
             case 3:
-                return antiClockwiseSide.get(this);
+                return getAntiClockwise();
             default:
                 return this;
         }
     }
-
 }

@@ -18,6 +18,7 @@ package org.terasology.world;
 
 import org.terasology.math.Vector3i;
 import org.terasology.world.block.Block;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.liquid.LiquidData;
 
 /**
@@ -47,17 +48,22 @@ public class AbstractWorldProviderDecorator implements WorldProviderCore {
     }
 
     @Override
+    public ChunkType getChunkType() {
+        return base.getChunkType();
+    }
+
+    @Override
     public WorldBiomeProvider getBiomeProvider() {
         return base.getBiomeProvider();
     }
 
     @Override
-    public WorldView getLocalView(Vector3i chunk) {
+    public ClassicWorldView getLocalView(Vector3i chunk) {
         return base.getLocalView(chunk);
     }
 
     @Override
-    public WorldView getWorldViewAround(Vector3i chunk) {
+    public ClassicWorldView getWorldViewAround(Vector3i chunk) {
         return base.getWorldViewAround(chunk);
     }
 

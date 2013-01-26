@@ -29,20 +29,13 @@ message ModData {
     optional TeraArray data = 2;
 }
 
-enum State {
-    ADJACENCY_GENERATION_PENDING      = 0;
-    INTERNAL_LIGHT_GENERATION_PENDING = 1;
-    LIGHT_PROPAGATION_PENDING         = 2;
-    FULL_LIGHT_CONNECTIVITY_PENDING   = 3;
-    COMPLETE                          = 4;
-}
-
 message Chunk {
     optional sint32    x             = 1;
     optional sint32    y             = 2;
     optional sint32    z             = 3;
 
-    optional State     state         = 4;
+    optional uint32    type          = 10;
+    optional uint32    state         = 4;
     
     optional TeraArray block_data    = 5;
     optional TeraArray sunlight_data = 6;

@@ -673,7 +673,7 @@ public class BlockLoader {
         }
         if (jsonObj.has("sides")) {
             T value = context.deserialize(jsonObj.get("sides"), type);
-            for (Side side : Side.horizontalSides()) {
+            for (Side side : Side.getHorizontalSides()) {
                 target.put(BlockPart.fromSide(side), value);
             }
         }

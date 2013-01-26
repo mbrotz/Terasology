@@ -24,7 +24,7 @@ import javax.vecmath.Matrix4f;
 import javax.vecmath.Vector3f;
 
 import org.terasology.utilities.FastRandom;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 
@@ -71,7 +71,7 @@ public class TreeGeneratorLSystem extends TreeGenerator {
     }
 
     @Override
-    public void generate(WorldView view, FastRandom rand, int posX, int posY, int posZ) {
+    public void generate(ClassicWorldView view, FastRandom rand, int posX, int posY, int posZ) {
 
         String axiom = initialAxiom;
 

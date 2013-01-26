@@ -30,8 +30,9 @@ import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.rendering.world.WorldRenderer;
 import org.terasology.world.block.management.BlockManager;
-import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.ChunkProvider;
+import org.terasology.world.chunks.ChunkType;
+import org.terasology.world.chunks.ChunkState;
+import org.terasology.world.chunks.provider.ChunkProvider;
 
 import javax.vecmath.Vector3f;
 import java.util.Iterator;
@@ -49,6 +50,10 @@ public class PrepareLocalWorld implements LoadProcess {
     private boolean spawningPlayer;
     private Vector3i targetPos;
     private EntityRef spawnZoneEntity;
+    
+    private ChunkType getChunkType() {
+        return chunkProvider.getChunkType();
+    }
 
     @Override
     public String getMessage() {
@@ -57,7 +62,7 @@ public class PrepareLocalWorld implements LoadProcess {
 
     @Override
     public boolean step() {
-        while (chunkProvider.getChunk(targetPos) == null || chunkProvider.getChunk(targetPos).getChunkState() != Chunk.State.COMPLETE) {
+        while (chunkProvider.getChunk(targetPos) == null || chunkProvider.getChunk(targetPos).getChunkState() != ChunkState.COMPLETE) {
             return false;
         }
 
@@ -77,19 +82,19 @@ public class PrepareLocalWorld implements LoadProcess {
         spawningPlayer = !iterator.hasNext();
         if (spawningPlayer) {
             spawnZoneEntity = entityManager.create();
-            spawnZoneEntity.addComponent(new LocationComponent(new Vector3f(Chunk.SIZE_X / 2, Chunk.SIZE_Y / 2, Chunk.SIZE_Z / 2)));
+            spawnZoneEntity.addComponent(new LocationComponent(new Vector3f(getChunkType().sizeX / 2, getChunkType().sizeY / 2, getChunkType().sizeZ / 2)));
             worldRenderer.getChunkProvider().addRegionEntity(spawnZoneEntity, 4);
             targetPos = Vector3i.zero();
         } else {
             CoreRegistry.get(LocalPlayer.class).setEntity(iterator.next());
             worldRenderer.setPlayer(CoreRegistry.get(LocalPlayer.class));
-            targetPos = TeraMath.calcChunkPos(new Vector3i(worldRenderer.getPlayer().getPosition(), 0.5f));
+            targetPos = getChunkType().calcChunkPos(new Vector3i(worldRenderer.getPlayer().getPosition(), 0.5f));
         }
         return UNKNOWN_STEPS;
     }
 
     private void spawnPlayer() {
-        Vector3i spawnPoint = new Vector3i(Chunk.SIZE_X / 2, Chunk.SIZE_Y, Chunk.SIZE_Z / 2);
+        Vector3i spawnPoint = new Vector3i(getChunkType().sizeX / 2, getChunkType().sizeY / 2, getChunkType().sizeZ / 2);
         while (worldRenderer.getWorldProvider().getBlock(spawnPoint) == BlockManager.getInstance().getAir() && spawnPoint.y > 0) {
             spawnPoint.y--;
         }

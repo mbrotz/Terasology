@@ -27,10 +27,10 @@ import org.terasology.math.Vector3i;
 import org.terasology.performanceMonitor.PerformanceMonitor;
 import org.terasology.world.MiniatureChunk;
 import org.terasology.world.WorldBiomeProvider;
-import org.terasology.world.WorldView;
+import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockPart;
-import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 
 /**
  * Generates tessellated chunk meshes from chunks.
@@ -47,14 +47,15 @@ public final class ChunkTessellator {
         this.biomeProvider = biomeProvider;
     }
 
-    public ChunkMesh generateMesh(WorldView worldView, Vector3i chunkPos, int meshHeight, int verticalOffset) {
+    public ChunkMesh generateMesh(ClassicWorldView worldView, Vector3i chunkPos, int meshHeight, int verticalOffset) {
         PerformanceMonitor.startActivity("GenerateMesh");
-        ChunkMesh mesh = new ChunkMesh();
+        final ChunkType chunkType = worldView.getChunkType();
+        final ChunkMesh mesh = new ChunkMesh();
+        
+        final Vector3i chunkOffset = new Vector3i(chunkPos.x * chunkType.sizeX, chunkPos.y * chunkType.sizeY * chunkType.fStackable, chunkPos.z * chunkType.sizeZ);
 
-        Vector3i chunkOffset = new Vector3i(chunkPos.x * Chunk.SIZE_X, chunkPos.y * Chunk.SIZE_Y, chunkPos.z * Chunk.SIZE_Z);
-
-        for (int x = 0; x < Chunk.SIZE_X; x++) {
-            for (int z = 0; z < Chunk.SIZE_Z; z++) {
+        for (int x = 0; x < chunkType.sizeX; x++) {
+            for (int z = 0; z < chunkType.sizeZ; z++) {
                 float biomeTemp = biomeProvider.getTemperatureAt(chunkOffset.x + x, chunkOffset.z + z);
                 float biomeHumidity = biomeProvider.getHumidityAt(chunkOffset.x + x, chunkOffset.z + z);
 
@@ -80,13 +81,13 @@ public final class ChunkTessellator {
         PerformanceMonitor.startActivity("GenerateMinuatureMesh");
         ChunkMesh mesh = new ChunkMesh();
 
-        MiniatureChunk[] chunks = { miniatureChunk };
-        WorldView localWorldView = new WorldView(chunks, Region3i.createFromCenterExtents(Vector3i.zero(), Vector3i.zero()), Vector3i.zero());
-        localWorldView.setChunkSize(new Vector3i(MiniatureChunk.CHUNK_SIZE));
+        MiniatureChunk[][] chunks = { {miniatureChunk} };
+        ClassicWorldView localWorldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(Vector3i.zero(), Vector3i.zero()), Vector3i.zero(), ChunkType.Miniature);
+//        localWorldView.setChunkSize(new Vector3i(ChunkType.Miniature.getChunkSize()));
 
-        for (int x = 0; x < MiniatureChunk.SIZE_X; x++) {
-            for (int z = 0; z < MiniatureChunk.SIZE_Z; z++) {
-                for (int y = 0; y < MiniatureChunk.SIZE_Y; y++) {
+        for (int x = 0; x < ChunkType.Miniature.sizeX; x++) {
+            for (int z = 0; z < ChunkType.Miniature.sizeZ; z++) {
+                for (int y = 0; y < ChunkType.Miniature.sizeY; y++) {
                     Block block = miniatureChunk.getBlock(x,y,z);
 
                     if (block == null || block.isInvisible())
@@ -104,7 +105,7 @@ public final class ChunkTessellator {
         return mesh;
     }
 
-    private void generateOptimizedBuffers(WorldView worldView, ChunkMesh mesh) {
+    private void generateOptimizedBuffers(ClassicWorldView worldView, ChunkMesh mesh) {
         PerformanceMonitor.startActivity("OptimizeBuffers");
 
         for (int j = 0; j < mesh._vertexElements.length; j++) {
@@ -155,7 +156,7 @@ public final class ChunkTessellator {
         PerformanceMonitor.endActivity();
     }
 
-    private void calcLightingValuesForVertexPos(WorldView worldView, Vector3f vertexPos, float[] output, Vector3f normal) {
+    private void calcLightingValuesForVertexPos(ClassicWorldView worldView, Vector3f vertexPos, float[] output, Vector3f normal) {
         PerformanceMonitor.startActivity("calcLighting");
         float[] lights = new float[8];
         float[] blockLights = new float[8];
@@ -244,8 +245,9 @@ public final class ChunkTessellator {
         PerformanceMonitor.endActivity();
     }
 
-    private void generateBlockVertices(WorldView view, ChunkMesh mesh, int x, int y, int z, float temp, float hum) {
-        Block block = view.getBlock(x, y, z);
+    private void generateBlockVertices(ClassicWorldView view, ChunkMesh mesh, int x, int y, int z, float temp, float hum) {
+        final ChunkType chunkType = view.getChunkType();
+        final Block block = view.getBlock(x, y, z);
 
         /*
          * Determine the render process.
@@ -273,20 +275,20 @@ public final class ChunkTessellator {
             drawDir[side.ordinal()] = isSideVisibleForBlockTypes(blockToCheck, block, side);
         }
 
-        if (y == 0) {
+        if (!chunkType.isStackable && y == 0) {
             drawDir[Side.BOTTOM.ordinal()] = false;
         }
 
         // If the block is lowered, some more faces may have to be drawn
         if (block.isLiquid()) {
             // Draw horizontal sides if visible from below
-            for (Side side : Side.horizontalSides()) {
+            for (Side side : Side.getHorizontalSides()) {
                 Vector3i offset = side.getVector3i();
                 Block adjacentBelow = view.getBlock(x + offset.x, y - 1, z + offset.z);
                 Block adjacent = view.getBlock(x + offset.x, y, z + offset.z);
                 Block below = view.getBlock(x, y - 1, z);
 
-                drawDir[side.ordinal()] |= (isSideVisibleForBlockTypes(adjacentBelow, block, side) && !isSideVisibleForBlockTypes(below, adjacent, side.reverse()));
+                drawDir[side.ordinal()] |= (isSideVisibleForBlockTypes(adjacentBelow, block, side) && !isSideVisibleForBlockTypes(below, adjacent, side.getReverse()));
             }
 
             // Draw the top if below a non-lowered block
@@ -328,7 +330,7 @@ public final class ChunkTessellator {
         if (currentBlock.isLiquid() && blockToCheck.isLiquid()) return false;
 
         return blockToCheck.getId() == 0x0 ||
-                !blockToCheck.isFullSide(side.reverse()) ||
+                !blockToCheck.isFullSide(side.getReverse()) ||
                 (!currentBlock.isTranslucent() && blockToCheck.isTranslucent());
     }
 

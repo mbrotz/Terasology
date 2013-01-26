@@ -17,6 +17,7 @@ package org.terasology.world;
 
 import org.terasology.math.Vector3i;
 import org.terasology.world.block.Block;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.liquid.LiquidData;
 
 /**
@@ -44,6 +45,11 @@ public interface WorldProviderCore {
      * @return General world info
      */
     public WorldInfo getWorldInfo();
+    
+    /**
+     * @return The type of chunks this WorldProvider generates/handles
+     */
+    public ChunkType getChunkType();
 
     /**
      * @return Thw world's biome provider
@@ -54,13 +60,13 @@ public interface WorldProviderCore {
      * @param chunk
      * @return A world view centered on the desired chunk, with the surrounding chunks present.
      */
-    public WorldView getLocalView(Vector3i chunk);
+    public ClassicWorldView getLocalView(Vector3i chunk);
 
     /**
      * @param chunk
      * @return A world view of the chunks around the desired chunk, uncentered.
      */
-    public WorldView getWorldViewAround(Vector3i chunk);
+    public ClassicWorldView getWorldViewAround(Vector3i chunk);
 
 
     /**

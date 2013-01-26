@@ -17,8 +17,11 @@
 package org.terasology.math;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import javax.vecmath.Vector3f;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Describes an axis-aligned bounded space in 3D integer.
@@ -30,6 +33,7 @@ public class Region3i implements Iterable<Vector3i> {
 
     private final Vector3i min = new Vector3i();
     private final Vector3i size = new Vector3i();
+    private final Vector3i max = new Vector3i();
 
     public static Region3i createFromMinAndSize(Vector3i min, Vector3i size) {
         if (size.x <= 0 || size.y <= 0 || size.z <= 0) {
@@ -91,16 +95,18 @@ public class Region3i implements Iterable<Vector3i> {
     /**
      * Constructs an empty Region with size (0,0,0).
      */
-    public Region3i() {
-    }
+    public Region3i() {}
 
     private Region3i(Vector3i min, Vector3i size) {
         this.min.set(min);
         this.size.set(size);
+        this.max.set(min);
+        this.max.add(size);
+        this.max.sub(1, 1, 1);
     }
 
     public boolean isEmpty() {
-        return size.x + size.y + size().z == 0;
+        return size.x * size.y * size.z == 0; 
     }
 
     /**
@@ -121,10 +127,7 @@ public class Region3i implements Iterable<Vector3i> {
      * @return The largest vector in the region
      */
     public Vector3i max() {
-        Vector3i max = new Vector3i(min);
-        max.add(size);
-        max.sub(1, 1, 1);
-        return max;
+        return new Vector3i(max);
     }
 
     /**
@@ -201,7 +204,7 @@ public class Region3i implements Iterable<Vector3i> {
     }
 
     public boolean encompasses(int x, int y, int z) {
-        return (x >= min.x) && (y >= min.y) && (z >= min.z) && (x < min.x + size.x) && (y < min.y + size.y) && (z < min.z + size.z);
+        return (x >= min.x) && (y >= min.y) && (z >= min.z) && (x <= max.x) && (y <= max.y) && (z <= max.z);
     }
 
     /**
@@ -210,14 +213,15 @@ public class Region3i implements Iterable<Vector3i> {
      */
     public Vector3i getNearestPointTo(Vector3i pos) {
         Vector3i result = new Vector3i(pos);
-        result.min(max());
+        result.min(max);
         result.max(min);
         return result;
     }
 
     @Override
-    public Iterator<Vector3i> iterator() {
-        return new Region3iIterator(this);
+    public Region3iIterator iterator() {
+        if (isEmpty()) return new NullIterator();
+        return new RegionIterator(this);
     }
 
     @Override
@@ -243,37 +247,105 @@ public class Region3i implements Iterable<Vector3i> {
         return hash;
     }
 
-    private class Region3iIterator implements Iterator<Vector3i> {
-        Vector3i pos;
-        Vector3i result = new Vector3i();
+    /**
+     * Region3iIterator supports an alternative {@code next()} method, accepting an output parameter for enhanced efficiency.
+     * @author Manuel Brotz <manu.brotz@gmx.ch>
+     * @see Region3iIterator#next(Vector3i)
+     */
+    public static interface Region3iIterator extends Iterator<Vector3i> {
+        
+        /**
+         * Equivalent to {@code Region3iIterator.next()}, but accepts an output parameter for enhanced efficiency. 
+         * The output parameter avoids unnecessary object allocation.
+         * @param output The {@code Vector3i} instance that recieves the result. Must not be null.
+         * @return The same {@code Vector3i} instance that was passed through the parameter {@code output}.
+         */
+        public Vector3i next(Vector3i output);
+        
+    }
+    
+    private static class RegionIterator implements Region3iIterator {
+        
+        private final int minX, minZ;
+        private final int maxX, maxY, maxZ;
+        private int posX, posY, posZ;
 
-        public Region3iIterator(Region3i region) {
-            this.pos = new Vector3i();
+        public RegionIterator(Region3i region) {
+            Preconditions.checkNotNull(region, "The parameter 'region' must not be null");
+            final Vector3i min = region.min, max = region.max;
+            this.minX = min.x;
+            this.minZ = min.z;
+            this.maxX = max.x;
+            this.maxY = max.y;
+            this.maxZ = max.z;
+            this.posX = min.x;
+            this.posY = min.y;
+            this.posZ = min.z;
         }
 
         @Override
         public boolean hasNext() {
-            return pos.x < size.x;
+            return posY <= maxY;
         }
 
         @Override
         public Vector3i next() {
-            Vector3i result = new Vector3i(pos.x + min.x, pos.y + min.y, pos.z + min.z);
-            pos.z++;
-            if (pos.z >= size.z) {
-                pos.z = 0;
-                pos.y++;
-                if (pos.y >= size.y) {
-                    pos.y = 0;
-                    pos.x++;
+            if (posY > maxY) throw new NoSuchElementException();
+            final Vector3i result = new Vector3i(posX, posY, posZ);
+            ++posX;
+            if (posX > maxX) {
+                posX = minX;
+                ++posZ;
+                if (posZ > maxZ) {
+                    posZ = minZ;
+                    ++posY;
                 }
             }
             return result;
         }
+        
+        @Override
+        public Vector3i next(Vector3i output) {
+            if (posY > maxY) throw new NoSuchElementException();
+            output.set(posX, posY, posZ);
+            ++posX;
+            if (posX > maxX) {
+                posX = minX;
+                ++posZ;
+                if (posZ > maxZ) {
+                    posZ = minZ;
+                    ++posY;
+                }
+            }
+            return output;
+        }
 
         @Override
         public void remove() {
-            throw new UnsupportedOperationException("Not supported.");
+            throw new UnsupportedOperationException();
+        }
+    }
+    
+    private static class NullIterator implements Region3iIterator {
+
+        @Override
+        public boolean hasNext() {
+            return false;
+        }
+
+        @Override
+        public Vector3i next() {
+            throw new NoSuchElementException();
+        }
+        
+        @Override
+        public Vector3i next(Vector3i output) {
+            throw new NoSuchElementException();
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException();
         }
     }
 }

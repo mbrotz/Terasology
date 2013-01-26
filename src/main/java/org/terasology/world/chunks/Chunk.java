@@ -20,8 +20,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.text.DecimalFormat;
-import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.vecmath.Vector3f;
 
@@ -31,7 +30,6 @@ import org.terasology.config.AdvancedConfig;
 import org.terasology.game.CoreRegistry;
 import org.terasology.logic.manager.Config;
 import org.terasology.math.AABB;
-import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.protobuf.ChunksProtobuf;
 import org.terasology.rendering.primitives.ChunkMesh;
@@ -39,15 +37,12 @@ import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.blockdata.TeraArray;
 import org.terasology.world.chunks.blockdata.TeraArrays;
-import org.terasology.world.chunks.blockdata.TeraDenseArray4Bit;
-import org.terasology.world.chunks.blockdata.TeraDenseArray8Bit;
 import org.terasology.world.chunks.deflate.TeraStandardDeflator;
 import org.terasology.world.chunks.deflate.TeraDeflator;
 import org.terasology.world.liquid.LiquidData;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 
 /**
  * Chunks are the basic components of the world. Each chunk contains a fixed amount of blocks
@@ -65,56 +60,15 @@ public class Chunk implements Externalizable {
     
     public static final long serialVersionUID = 79881925217704826L;
     
-    public static enum State {
-        ADJACENCY_GENERATION_PENDING(ChunksProtobuf.State.ADJACENCY_GENERATION_PENDING),
-        INTERNAL_LIGHT_GENERATION_PENDING(ChunksProtobuf.State.INTERNAL_LIGHT_GENERATION_PENDING),
-        LIGHT_PROPAGATION_PENDING(ChunksProtobuf.State.LIGHT_PROPAGATION_PENDING),
-        FULL_LIGHT_CONNECTIVITY_PENDING(ChunksProtobuf.State.FULL_LIGHT_CONNECTIVITY_PENDING),
-        COMPLETE(ChunksProtobuf.State.COMPLETE);
-        
-        private final ChunksProtobuf.State protobufState;
-        
-        private static final Map<ChunksProtobuf.State, State> lookup;
-        
-        static {
-            lookup = Maps.newHashMap();
-            for (State s : State.values()) {
-                lookup.put(s.protobufState, s);
-            }
-        }
-        
-        private State(ChunksProtobuf.State protobufState) {
-            this.protobufState = Preconditions.checkNotNull(protobufState);
-        }
-        
-        public final ChunksProtobuf.State getProtobufState() {
-            return protobufState;
-        }
-        
-        public static final State lookup(ChunksProtobuf.State state) {
-            State result = lookup.get(Preconditions.checkNotNull(state, "The parameter 'state' must not be null"));
-            if (result == null)
-                throw new IllegalStateException("Unable to lookup the supplied state: " + state);
-            return result;
-        }
-    }
-
     /* PUBLIC CONSTANT VALUES */
-    public static final int SIZE_X = 16;
-    public static final int SIZE_Y = 256;
-    public static final int SIZE_Z = 16;
-    public static final int INNER_CHUNK_POS_FILTER_X = TeraMath.ceilPowerOfTwo(SIZE_X) - 1;
-    public static final int INNER_CHUNK_POS_FILTER_Z = TeraMath.ceilPowerOfTwo(SIZE_Z) - 1;
-    public static final int POWER_X = TeraMath.sizeOfPower(SIZE_X);
-    public static final int POWER_Z = TeraMath.sizeOfPower(SIZE_Z);
     public static final int VERTICAL_SEGMENTS = Config.getInstance().getVerticalChunkMeshSegments();
     public static final byte MAX_LIGHT = 0x0f;
     public static final byte MAX_LIQUID_DEPTH = 0x07;
 
-    public static final Vector3i CHUNK_POWER = new Vector3i(POWER_X, 0, POWER_Z);
-    public static final Vector3i CHUNK_SIZE = new Vector3i(SIZE_X, SIZE_Y, SIZE_Z);
-    public static final Vector3i INNER_CHUNK_POS_FILTER = new Vector3i(INNER_CHUNK_POS_FILTER_X, 0, INNER_CHUNK_POS_FILTER_Z);
-
+    private final ReentrantReadWriteLock accessLock = new ReentrantReadWriteLock();
+    
+    private final ChunkType chunkType;
+    private ChunkState chunkState = ChunkState.ADJACENCY_GENERATION_PENDING;    
     private final Vector3i pos = new Vector3i();
 
     private TeraArray blockData;
@@ -122,7 +76,6 @@ public class Chunk implements Externalizable {
     private TeraArray lightData;
     private TeraArray extraData;
 
-    private State chunkState = State.ADJACENCY_GENERATION_PENDING;
     private boolean dirty;
     private boolean animated;
     private AABB aabb;
@@ -132,11 +85,18 @@ public class Chunk implements Externalizable {
     private ChunkMesh[] pendingMesh;
     private AABB[] subMeshAABB = null;
 
-    private ReentrantLock lock = new ReentrantLock();
     private boolean disposed = false;
 
-
+    /**
+     * This constructor is for compatibility only and will be removed later.
+     */
+    @Deprecated
     public Chunk() {
+        this(ChunkType.Classic);
+    }
+    
+    public Chunk(ChunkType chunkType) {
+        this.chunkType = Preconditions.checkNotNull(chunkType, "The parameter 'chunkType' must not be null");
         final Chunks c = Chunks.getInstance();
         blockData = c.getBlockDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         sunlightData = c.getSunlightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
@@ -145,18 +105,19 @@ public class Chunk implements Externalizable {
         dirty = true;
     }
 
-    public Chunk(int x, int y, int z) {
-        this();
+    public Chunk(ChunkType chunkType, int x, int y, int z) {
+        this(chunkType);
         pos.x = x;
         pos.y = y;
         pos.z = z;
     }
 
-    public Chunk(Vector3i pos) {
-        this(pos.x, pos.y, pos.z);
+    public Chunk(ChunkType chunkType, Vector3i pos) {
+        this(chunkType, pos.x, pos.y, pos.z);
     }
 
     public Chunk(Chunk other) {
+        chunkType = other.chunkType;
         pos.set(other.pos);
         blockData = other.blockData.copy();
         sunlightData = other.sunlightData.copy();
@@ -166,7 +127,8 @@ public class Chunk implements Externalizable {
         dirty = true;
     }
     
-    public Chunk(Vector3i pos, State chunkState, TeraArray blocks, TeraArray sunlight, TeraArray light, TeraArray liquid) {
+    public Chunk(ChunkType chunkType, Vector3i pos, ChunkState chunkState, TeraArray blocks, TeraArray sunlight, TeraArray light, TeraArray liquid) {
+        this.chunkType = Preconditions.checkNotNull(chunkType);
         this.pos.set(Preconditions.checkNotNull(pos));
         this.blockData = Preconditions.checkNotNull(blocks);
         this.sunlightData = Preconditions.checkNotNull(sunlight);
@@ -191,7 +153,8 @@ public class Chunk implements Externalizable {
             final TeraArrays t = TeraArrays.getInstance();
             final ChunksProtobuf.Chunk.Builder b = ChunksProtobuf.Chunk.newBuilder()
                     .setX(chunk.pos.x).setY(chunk.pos.y).setZ(chunk.pos.z)
-                    .setState(chunk.chunkState.protobufState)
+                    .setType(chunk.getChunkType().id)
+                    .setState(chunk.getChunkState().id)
                     .setBlockData(t.encode(chunk.blockData))
                     .setSunlightData(t.encode(chunk.sunlightData))
                     .setLightData(t.encode(chunk.lightData))
@@ -211,7 +174,14 @@ public class Chunk implements Externalizable {
             final Vector3i pos = new Vector3i(message.getX(), message.getY(), message.getZ());
             if (!message.hasState())
                 throw new IllegalArgumentException("Illformed protobuf message. Missing chunk state.");
-            final State state = State.lookup(message.getState());
+            final ChunkState state = ChunkState.getStateById(message.getState());
+            if (state == null)
+                throw new IllegalArgumentException("Illformed protobuf message. Unknown chunk state: " + message.getState());
+            if (!message.hasType())
+                throw new IllegalArgumentException("Illformed protobuf message. Missing chunk type.");
+            final ChunkType chunkType = ChunkType.getTypeById(message.getType());
+            if (chunkType == null) 
+                throw new IllegalArgumentException("Illformed protobuf message. Unknown chunk type: " + message.getType());
             if (!message.hasBlockData())
                 throw new IllegalArgumentException("Illformed protobuf message. Missing block data.");
             if (!message.hasSunlightData())
@@ -225,22 +195,33 @@ public class Chunk implements Externalizable {
             final TeraArray sunlightData = t.decode(message.getSunlightData());
             final TeraArray lightData = t.decode(message.getLightData());
             final TeraArray extraData = t.decode(message.getExtraData());
-            return new Chunk(pos, state, blockData, sunlightData, lightData, extraData);
+            return new Chunk(chunkType, pos, state, blockData, sunlightData, lightData, extraData);
         }
     }
+    
+    public ReentrantReadWriteLock getLock() {
+        return accessLock;
+    }
 
+    @Deprecated
     public void lock() {
-        lock.lock();
+        accessLock.writeLock().lock();
     }
 
+    @Deprecated
     public void unlock() {
-        lock.unlock();
+        accessLock.writeLock().unlock();
     }
 
+    @Deprecated
     public boolean isLocked() {
-        return lock.isLocked();
+        return accessLock.isWriteLocked();
     }
 
+    public ChunkType getChunkType() {
+        return chunkType;
+    }
+    
     public Vector3i getPos() {
         return new Vector3i(pos);
     }
@@ -249,13 +230,22 @@ public class Chunk implements Externalizable {
         return x >= 0 && y >= 0 && z >= 0 && x < getChunkSizeX() && y < getChunkSizeY() && z < getChunkSizeZ();
     }
 
-    public State getChunkState() {
+    public ChunkState getChunkState() {
         return chunkState;
     }
 
-    public void setChunkState(State chunkState) {
+    public void setChunkState(ChunkState chunkState) {
         Preconditions.checkNotNull(chunkState);
         this.chunkState = chunkState;
+    }
+    
+    public ChunkStatistics getStatistics(final boolean accurate) {
+        if (accurate) lock();
+        try {
+            return new ChunkStatistics(this);
+        } finally {
+            if (accurate) unlock();
+        }
     }
 
     public boolean isDirty() {
@@ -271,18 +261,37 @@ public class Chunk implements Externalizable {
         }
     }
     
+    public TeraArray getBlockData() {
+        return blockData;
+    }
+    
+    public TeraArray getSunlightData() {
+        return sunlightData;
+    }
+    
+    public TeraArray getLightData() {
+        return lightData;
+    }
+    
+    public TeraArray getExtraData() {
+        return extraData;
+    }
+
     public int getEstimatedMemoryConsumptionInBytes() {
         return blockData.getEstimatedMemoryConsumptionInBytes() + sunlightData.getEstimatedMemoryConsumptionInBytes() + lightData.getEstimatedMemoryConsumptionInBytes() + extraData.getEstimatedMemoryConsumptionInBytes();
     }
-
+    
+    @Deprecated
     public Block getBlock(Vector3i pos) {
         return BlockManager.getInstance().getBlock((byte)blockData.get(pos.x, pos.y, pos.z));
     }
 
+    @Deprecated
     public Block getBlock(int x, int y, int z) {
         return BlockManager.getInstance().getBlock((byte)blockData.get(x, y, z));
     }
 
+    @Deprecated
     public boolean setBlock(int x, int y, int z, Block block) {
         int oldValue = blockData.set(x, y, z, block.getId());
         if (oldValue != block.getId()) {
@@ -294,6 +303,7 @@ public class Chunk implements Externalizable {
         return false;
     }
 
+    @Deprecated
     public boolean setBlock(int x, int y, int z, Block newBlock, Block oldBlock) {
         if (newBlock != oldBlock) {
             if (blockData.set(x, y, z, newBlock.getId(), oldBlock.getId())) {
@@ -306,67 +316,82 @@ public class Chunk implements Externalizable {
         return false;
     }
 
+    @Deprecated
     public boolean setBlock(Vector3i pos, Block block) {
         return setBlock(pos.x, pos.y, pos.z, block);
     }
 
+    @Deprecated
     public boolean setBlock(Vector3i pos, Block block, Block oldBlock) {
         return setBlock(pos.x, pos.y, pos.z, block, oldBlock);
     }
 
+    @Deprecated
     public byte getSunlight(Vector3i pos) {
         return getSunlight(pos.x, pos.y, pos.z);
     }
 
+    @Deprecated
     public byte getSunlight(int x, int y, int z) {
         return (byte) sunlightData.get(x, y, z);
     }
 
+    @Deprecated
     public boolean setSunlight(Vector3i pos, byte amount) {
         return setSunlight(pos.x, pos.y, pos.z, amount);
     }
 
+    @Deprecated
     public boolean setSunlight(int x, int y, int z, byte amount) {
         Preconditions.checkArgument(amount >= 0 && amount <= 15);
         return sunlightData.set(x, y, z, amount) != amount;
     }
 
+    @Deprecated
     public byte getLight(Vector3i pos) {
         return getLight(pos.x, pos.y, pos.z);
     }
 
+    @Deprecated
     public byte getLight(int x, int y, int z) {
         return (byte) lightData.get(x, y, z);
     }
 
+    @Deprecated
     public boolean setLight(Vector3i pos, byte amount) {
         return setLight(pos.x, pos.y, pos.z, amount);
     }
 
+    @Deprecated
     public boolean setLight(int x, int y, int z, byte amount) {
         Preconditions.checkArgument(amount >= 0 && amount <= 15);
         return lightData.set(x, y, z, amount) != amount;
     }
 
+    @Deprecated
     public boolean setLiquid(Vector3i pos, LiquidData newState, LiquidData oldState) {
         return setLiquid(pos.x, pos.y, pos.z, newState, oldState);
     }
 
+    @Deprecated
     public boolean setLiquid(int x, int y, int z, LiquidData newState, LiquidData oldState) {
         byte expected = oldState.toByte();
         byte newValue = newState.toByte();
         return extraData.set(x, y, z, newValue, expected);
     }
 
+    @Deprecated
     public void setLiquid(int x, int y, int z, LiquidData newState) {
         byte newValue = newState.toByte();
         extraData.set(x, y, z, newValue);
     }
 
+    @Deprecated
     public LiquidData getLiquid(Vector3i pos) {
         return getLiquid(pos.x, pos.y, pos.z);
     }
 
+    @Deprecated
     public LiquidData getLiquid(int x, int y, int z) {
         return new LiquidData((byte) extraData.get(x, y, z));
     }
@@ -417,7 +442,7 @@ public class Chunk implements Externalizable {
         return aabb;
     }
 
-    // TODO: Protobuf instead???
+    @Deprecated
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(pos.x);
         out.writeInt(pos.y);
@@ -429,12 +454,13 @@ public class Chunk implements Externalizable {
         out.writeObject(extraData);
     }
 
+    @Deprecated
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         pos.x = in.readInt();
         pos.y = in.readInt();
         pos.z = in.readInt();
         setDirty(true);
-        chunkState = (State) in.readObject();
+        chunkState = (ChunkState) in.readObject();
         blockData = (TeraArray) in.readObject();
         sunlightData = (TeraArray) in.readObject();
         lightData = (TeraArray) in.readObject();
@@ -444,7 +470,7 @@ public class Chunk implements Externalizable {
     private static DecimalFormat fpercent = new DecimalFormat("0.##");
     private static DecimalFormat fsize = new DecimalFormat("#,###");
     public void deflate() {
-        if (getChunkState() != State.COMPLETE) {
+        if (getChunkState() != ChunkState.COMPLETE) {
             logger.warn("Before deflation the state of the chunk ({}, {}, {}) should be set to State.COMPLETE but is now State.{}", getPos().x, getPos().y, getPos().z, getChunkState().toString());
         }
         lock();
@@ -483,22 +509,6 @@ public class Chunk implements Externalizable {
                 lightData = def.deflate(lightData);
                 extraData = def.deflate(extraData);
             }
-        } finally {
-            unlock();
-        }
-    }
-    
-    public void inflate() {
-        lock();
-        try {
-            if (!(blockData instanceof TeraDenseArray8Bit))
-                blockData = new TeraDenseArray8Bit(blockData);
-            if (!(sunlightData instanceof TeraDenseArray4Bit))
-                sunlightData = new TeraDenseArray4Bit(sunlightData);
-            if (!(lightData instanceof TeraDenseArray4Bit))
-                lightData = new TeraDenseArray4Bit(lightData);
-            if (!(extraData instanceof TeraDenseArray4Bit))
-                extraData = new TeraDenseArray4Bit(extraData);
         } finally {
             unlock();
         }
@@ -543,7 +553,7 @@ public class Chunk implements Externalizable {
         if (subMeshAABB == null) {
             subMeshAABB = new AABB[VERTICAL_SEGMENTS];
 
-            int heightHalf = SIZE_Y / VERTICAL_SEGMENTS / 2;
+            int heightHalf = chunkType.sizeY / VERTICAL_SEGMENTS / 2;
 
             for (int i = 0; i < subMeshAABB.length; i++) {
                 Vector3f dimensions = new Vector3f(8, heightHalf, 8);
@@ -570,14 +580,14 @@ public class Chunk implements Externalizable {
     }
 
     public int getChunkSizeX() {
-        return SIZE_X;
+        return chunkType.sizeX;
     }
 
     public int getChunkSizeY() {
-        return SIZE_Y;
+        return chunkType.sizeY;
     }
 
     public int getChunkSizeZ() {
-        return SIZE_Z;
+        return chunkType.sizeZ;
     }
 }
