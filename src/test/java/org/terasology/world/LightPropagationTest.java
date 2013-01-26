@@ -49,9 +49,9 @@ public class LightPropagationTest {
 
     @Before
     public void setup() {
-        Chunk[][] chunks = {{new Chunk(new Vector3i(-1, 0, -1)), new Chunk(new Vector3i(0, 0, -1)), new Chunk(new Vector3i(1, 0, -1)),
-                new Chunk(new Vector3i(-1, 0, 0)), new Chunk(new Vector3i(0, 0, 0)), new Chunk(new Vector3i(1, 0, 0)),
-                new Chunk(new Vector3i(-1, 0, 1)), new Chunk(new Vector3i(0, 0, 1)), new Chunk(new Vector3i(1, 0, 1))}};
+        Chunk[][] chunks = {{new Chunk(ChunkType.Classic, new Vector3i(-1, 0, -1)), new Chunk(ChunkType.Classic, new Vector3i(0, 0, -1)), new Chunk(ChunkType.Classic, new Vector3i(1, 0, -1)),
+                new Chunk(ChunkType.Classic, new Vector3i(-1, 0, 0)), new Chunk(ChunkType.Classic, new Vector3i(0, 0, 0)), new Chunk(ChunkType.Classic, new Vector3i(1, 0, 0)),
+                new Chunk(ChunkType.Classic, new Vector3i(-1, 0, 1)), new Chunk(ChunkType.Classic, new Vector3i(0, 0, 1)), new Chunk(ChunkType.Classic, new Vector3i(1, 0, 1))}};
 
         type = ChunkType.Classic;
         

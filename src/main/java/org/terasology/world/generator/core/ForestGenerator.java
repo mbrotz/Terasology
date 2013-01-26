@@ -57,12 +57,13 @@ public class ForestGenerator implements SecondPassChunkGenerator {
 
     @Override
     public void postProcessChunk(Vector3i pos, ClassicWorldView view) {
+        final ChunkType chunkType = view.getChunkType();
         FastRandom random = new FastRandom(seed.hashCode() ^ (pos.x + 39L * (pos.y + 39L * pos.z)));
-        for (int y = 32; y < ChunkType.Default.sizeY; y++) {
-            for (int x = 4; x < ChunkType.Default.sizeX; x += 4) {
-                for (int z = 4; z < ChunkType.Default.sizeZ; z += 4) {
+        for (int y = 32; y < chunkType.sizeY; y++) {
+            for (int x = 4; x < chunkType.sizeX; x += 4) {
+                for (int z = 4; z < chunkType.sizeZ; z += 4) {
                     Vector3i worldPos = new Vector3i(pos);
-                    worldPos.mult(new Vector3i(ChunkType.Default.sizeX, ChunkType.Default.sizeY, ChunkType.Default.sizeZ));
+                    worldPos.mult(new Vector3i(chunkType.sizeX, chunkType.sizeY, chunkType.sizeZ));
                     worldPos.add(x, y, z);
                     WorldBiomeProvider.Biome biome = biomeProvider.getBiomeAt(worldPos.x, worldPos.z);
 
@@ -101,7 +102,8 @@ public class ForestGenerator implements SecondPassChunkGenerator {
      * @param z       Position on the z-axis
      */
     private void generateTree(ClassicWorldView view, TreeGenerator treeGen, int x, int y, int z, FastRandom random) {
-        for (int checkY = y + 1; checkY < ChunkType.Default.sizeY; ++checkY) {
+        final ChunkType chunkType = view.getChunkType();
+        for (int checkY = y + 1; checkY < chunkType.sizeY; ++checkY) {
             if (!view.getBlock(x, checkY, z).isTranslucent()) {
                 return;
             }

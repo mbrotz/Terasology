@@ -26,11 +26,13 @@ import org.terasology.math.Vector3i;
 import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.ClassicWorldView;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.BaseChunkGenerator;
 import org.terasology.world.generator.ChunkGenerator;
 import org.terasology.world.generator.SecondPassChunkGenerator;
 import org.terasology.world.liquid.LiquidsGenerator;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 /**
@@ -38,6 +40,7 @@ import com.google.common.collect.Lists;
  */
 public class ChunkGeneratorManagerImpl implements ChunkGeneratorManager {
 
+    private ChunkType chunkType;
     private String worldSeed;
     private WorldBiomeProvider biomeProvider;
     private final List<ChunkGenerator> chunkGenerators = Lists.newArrayList();
@@ -95,6 +98,11 @@ public class ChunkGeneratorManagerImpl implements ChunkGeneratorManager {
 
         return chunkGeneratorManager;
     }
+    
+    @Override
+    public void setChunkType(final ChunkType chunkType) {
+        this.chunkType = Preconditions.checkNotNull(chunkType, "The parameter 'chunkType' must not be null");
+    }
 
     @Override
     public void setWorldSeed(final String seed) {
@@ -140,7 +148,7 @@ public class ChunkGeneratorManagerImpl implements ChunkGeneratorManager {
 
     @Override
     public Chunk generateChunk(final Vector3i pos) {
-        final Chunk chunk = new Chunk(pos);
+        final Chunk chunk = new Chunk(chunkType, pos);
         for (final ChunkGenerator generator : chunkGenerators) {
             generator.generateChunk(chunk);
         }

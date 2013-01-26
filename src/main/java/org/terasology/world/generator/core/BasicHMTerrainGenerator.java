@@ -74,31 +74,33 @@ public class BasicHMTerrainGenerator implements ChunkGenerator {
      * @param c
      */
     public void generateChunk(Chunk c){
+        
+        final ChunkType chunkType = c.getChunkType();
 
-        int hm_x = (((c.getChunkWorldPosX()/ChunkType.Default.sizeX)%512)+512)%512;
-        int hm_z = (((c.getChunkWorldPosZ()/ChunkType.Default.sizeZ)%512)+512)%512;
+        int hm_x = (((c.getChunkWorldPosX()/chunkType.sizeX)%512)+512)%512;
+        int hm_z = (((c.getChunkWorldPosZ()/chunkType.sizeZ)%512)+512)%512;
 
-        double scaleFactor = 0.05*ChunkType.Default.sizeY;
+        double scaleFactor = 0.05*chunkType.sizeY;
 
         double p00 = heightmap[hm_x][hm_z]*scaleFactor;
         double p10 = heightmap[(hm_x-1+512)%512][(hm_z)%512]*scaleFactor;
         double p11 = heightmap[(hm_x-1+512)%512][(hm_z+1+512)%512]*scaleFactor;
         double p01 = heightmap[(hm_x)%512][(hm_z+1+512)%512]*scaleFactor;
 
-        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
-            for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
+        for (int x = 0; x < chunkType.sizeX; x++) {
+            for (int z = 0; z < chunkType.sizeZ; z++) {
                 WorldBiomeProvider.Biome type = biomeProvider.getBiomeAt(
                         c.getBlockWorldPosX(x), c.getBlockWorldPosZ(z));
 
                 //calculate avg height
-                double interpolatedHeight = lerp(x/(double)ChunkType.Default.sizeX,lerp(z/(double)ChunkType.Default.sizeZ,p10,p11), lerp(z/(double)ChunkType.Default.sizeZ,p00,p01));
+                double interpolatedHeight = lerp(x/(double)chunkType.sizeX,lerp(z/(double)chunkType.sizeZ,p10,p11), lerp(z/(double)chunkType.sizeZ,p00,p01));
 
 
                 //Scale the height to fit one chunk (suppose we have max height 20 on the Heigthmap
                 //ToDo: Change this formula in later implementation of vertical chunks
                 double threshold = Math.floor(interpolatedHeight);
 
-                for (int y = ChunkType.Default.sizeY-1; y >= 0; y--) {
+                for (int y = chunkType.sizeY-1; y >= 0; y--) {
                     if (y == 0) { // The very deepest layer of the world is an
                         // indestructible mantle
                         c.setBlock(x, y, z, mantle);
@@ -106,19 +108,17 @@ public class BasicHMTerrainGenerator implements ChunkGenerator {
                     } else if (y<threshold){
                         c.setBlock(x,y,z,stone);
                     } else if (y==threshold){
-                        if (y<ChunkType.Default.sizeY*0.05+1){
+                        if (y<chunkType.sizeY*0.05+1){
                             c.setBlock(x,y,z,sand);
-                        } else if (y<ChunkType.Default.sizeY*0.05*12){
+                        } else if (y<chunkType.sizeY*0.05*12){
                             c.setBlock(x,y,z,grass);
                         } else{
                             c.setBlock(x,y,z,snow);
                         }
                     } else{
-                        if (y <= ChunkType.Default.sizeY/20 ) { // Ocean
+                        if (y <= chunkType.sizeY/20 ) { // Ocean
                             c.setBlock(x, y, z, water);
-                            c.setLiquid(x, y, z, new LiquidData(LiquidType.WATER,
-                                    Chunk.MAX_LIQUID_DEPTH));
-
+                            c.setLiquid(x, y, z, new LiquidData(LiquidType.WATER, Chunk.MAX_LIQUID_DEPTH));
                         } else {
                             c.setBlock(x,y,z,air);
                         }

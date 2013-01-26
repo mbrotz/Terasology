@@ -42,12 +42,12 @@ public class LiquidSimulationTest {
 
     @Before
     public void setup() {
-        Chunk[][] chunks = { {new Chunk(new Vector3i(-1,0,-1)), new Chunk(new Vector3i(0,0,-1)), new Chunk(new Vector3i(1,0,-1)),
-                new Chunk(new Vector3i(-1,0,0)), new Chunk(new Vector3i(0,0,0)), new Chunk(new Vector3i(1,0,0)),
-                new Chunk(new Vector3i(-1,0,1)), new Chunk(new Vector3i(0,0,1)), new Chunk(new Vector3i(1,0,1))} };
-
         type = ChunkType.Classic;
         
+        Chunk[][] chunks = { {new Chunk(type, new Vector3i(-1,0,-1)), new Chunk(type, new Vector3i(0,0,-1)), new Chunk(type, new Vector3i(1,0,-1)),
+                new Chunk(type, new Vector3i(-1,0,0)), new Chunk(type, new Vector3i(0,0,0)), new Chunk(type, new Vector3i(1,0,0)),
+                new Chunk(type, new Vector3i(-1,0,1)), new Chunk(type, new Vector3i(0,0,1)), new Chunk(type, new Vector3i(1,0,1))} };
+
         view = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1, 0, 1)), new Vector3i(1,1,1), type);
 
         air = BlockManager.getInstance().getBlock((byte)0);

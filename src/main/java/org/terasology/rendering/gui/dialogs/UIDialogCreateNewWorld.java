@@ -21,7 +21,6 @@ import org.terasology.config.ModConfig;
 import org.terasology.game.CoreRegistry;
 import org.terasology.game.GameEngine;
 import org.terasology.game.modes.StateLoading;
-import org.terasology.game.modes.StateSinglePlayer;
 import org.terasology.game.types.FreeStyleType;
 import org.terasology.game.types.GameType;
 import org.terasology.game.types.SurvivalType;
@@ -29,6 +28,7 @@ import org.terasology.logic.manager.PathManager;
 import org.terasology.rendering.gui.framework.UIDisplayContainer;
 import org.terasology.rendering.gui.framework.UIDisplayElement;
 import org.terasology.rendering.gui.framework.events.ClickListener;
+import org.terasology.rendering.gui.framework.events.SelectionListener;
 import org.terasology.rendering.gui.widgets.UIButton;
 import org.terasology.rendering.gui.widgets.UIComboBox;
 import org.terasology.rendering.gui.widgets.UIDialog;
@@ -38,6 +38,7 @@ import org.terasology.rendering.gui.widgets.UIText;
 import org.terasology.rendering.gui.windows.UIMenuSingleplayer;
 import org.terasology.utilities.FastRandom;
 import org.terasology.world.WorldInfo;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.core.*;
 import org.terasology.world.liquid.LiquidsGenerator;
 
@@ -64,8 +65,11 @@ public class UIDialogCreateNewWorld extends UIDialog {
     private UIText inputWorldTitle;
     private UILabel chunkGeneratorLabel;
     private UIComboBox chunkGenerator;
-    private UIComboBox typeOfGame;
     private UILabel typeOfGameLabel;
+    private UIComboBox typeOfGame;
+    private UILabel chunkTypeTitle;
+    private UILabel chunkTypeInfo;
+    private UIComboBox chunkTypeBox;
 
     private ModConfig modConfig;
 
@@ -75,6 +79,25 @@ public class UIDialogCreateNewWorld extends UIDialog {
 
         modConfig = new ModConfig();
         modConfig.copy(CoreRegistry.get(Config.class).getDefaultModConfig());
+    }
+    
+    public ChunkType getSelectedChunkType() {
+        if (chunkTypeBox != null) {
+            final UIListItem item = chunkTypeBox.getSelection();
+            if (item != null) {
+                final Object value = item.getValue();
+                if (value != null && value instanceof Integer)
+                    return ChunkType.getTypeById((Integer) value);
+            }
+        }
+        return null;
+    }
+    
+    public ChunkType getSelectedChunkType(ChunkType defaultType) {
+        final ChunkType type = getSelectedChunkType();
+        if (type == null)
+            return defaultType;
+        return type;
     }
 
     @Override
@@ -142,7 +165,45 @@ public class UIDialogCreateNewWorld extends UIDialog {
         chunkGenerator.addItem(item);
         chunkGenerator.select(0);
         chunkGenerator.setVisible(true);
+        
+        chunkTypeTitle = new UILabel("Choose Chunk Type:");
+        chunkTypeTitle.setColor(Color.darkGray);
+        chunkTypeTitle.setSize(new Vector2f(0f, 16f));
+        chunkTypeTitle.setVisible(true);
 
+        chunkTypeInfo = new UILabel("");
+        chunkTypeInfo.setColor(Color.darkGray);
+        chunkTypeInfo.setSize(new Vector2f(0f, 16f));
+        chunkTypeInfo.setVisible(true);
+
+        chunkTypeBox = new UIComboBox(new Vector2f(176f, 22f), new Vector2f(176f, 55f));
+        chunkTypeBox.setVisible(true);
+        for (ChunkType ct : ChunkType.values()) {
+            if (ct.isSelectable) {
+                item = new UIListItem(ct.toString(), new Integer(ct.id));
+                item.setTextColor(Color.black);
+                item.setPadding(new Vector4f(5f, 5f, 5f, 5f));
+                chunkTypeBox.addItem(item);
+            }
+        }
+        chunkTypeBox.addSelectionListener(new SelectionListener() {
+            @Override
+            public void changed(UIDisplayElement element) {
+                if (element instanceof UIComboBox) {
+                    final UIListItem item = ((UIComboBox) element).getSelection();
+                    if (item != null) {
+                        final ChunkType type = ChunkType.getTypeById((Integer) item.getValue());
+                        if (type != null) 
+                            chunkTypeInfo.setText("Size: " + type.sizeX + "x" + type.sizeY + "x" + type.sizeZ + ", Stackable: " + (type.isStackable ? "yes" : "no"));
+                        else
+                            chunkTypeInfo.setText("<no type for id " + ((Integer) item.getValue()) + ">");
+                    } else 
+                        chunkTypeInfo.setText("<no item selected>");
+                } else
+                    chunkTypeInfo.setText("<not an UIComboBox>");
+            }
+        });
+        chunkTypeBox.select(0);
 
         inputWorldTitleLabel.setPosition(new Vector2f(15f, 32f));
         inputWorldTitle.setPosition(new Vector2f(inputWorldTitleLabel.getPosition().x, inputWorldTitleLabel.getPosition().y + inputWorldTitleLabel.getSize().y + 8f));
@@ -155,7 +216,10 @@ public class UIDialogCreateNewWorld extends UIDialog {
         chunkGeneratorLabel.setPosition(new Vector2f(typeOfGame.getPosition().x, typeOfGame.getPosition().y + typeOfGame.getSize().y + 16f));
         chunkGenerator.setPosition(new Vector2f(chunkGeneratorLabel.getPosition().x, chunkGeneratorLabel.getPosition().y + chunkGeneratorLabel.getSize().y + 8f));
 
-
+        chunkTypeTitle.setPosition(new Vector2f(chunkGenerator.getPosition().x + chunkGenerator.getSize().x + 16f, chunkGeneratorLabel.getPosition().y));
+        chunkTypeBox.setPosition(new Vector2f(chunkGenerator.getPosition().x + chunkGenerator.getSize().x + 16f, chunkGenerator.getPosition().y));
+        chunkTypeInfo.setPosition(new Vector2f(chunkGenerator.getPosition().x + chunkGenerator.getSize().x + 16f, chunkTypeBox.getPosition().y + chunkTypeBox.getSize().y + 8f));
+        
         UIButton modButton = new UIButton(new Vector2f(80, 30), UIButton.ButtonType.NORMAL);
         modButton.setPosition(new Vector2f(chunkGenerator.getPosition().x, chunkGenerator.getPosition().y + chunkGenerator.getSize().y + 58f));
         modButton.setVisible(true);
@@ -175,6 +239,9 @@ public class UIDialogCreateNewWorld extends UIDialog {
         parent.addDisplayElement(chunkGenerator);
         parent.addDisplayElement(typeOfGame);
         parent.addDisplayElement(typeOfGameLabel);
+        parent.addDisplayElement(chunkTypeTitle);
+        parent.addDisplayElement(chunkTypeInfo);
+        parent.addDisplayElement(chunkTypeBox);
         parent.addDisplayElement(modButton);
         parent.layout();
     }
@@ -202,6 +269,11 @@ public class UIDialogCreateNewWorld extends UIDialog {
 
                 CoreRegistry.put(GameType.class, (GameType) typeOfGame.getSelection().getValue());
 
+                if (getSelectedChunkType() == null) {
+                    getGUIManager().showMessage("Error", "Please select a chunk type");
+                    return;
+                }
+                
                 //set the world settings
                 if (inputSeed.getText().length() > 0) {
                     org.terasology.logic.manager.Config.getInstance().setDefaultSeed(inputSeed.getText());
@@ -251,8 +323,9 @@ public class UIDialogCreateNewWorld extends UIDialog {
                 org.terasology.logic.manager.Config.getInstance().setChunkGenerator(chunksListArr);
                 CoreRegistry.get(Config.class).getDefaultModConfig().copy(modConfig);
                 CoreRegistry.get(Config.class).save();
-
-                CoreRegistry.get(GameEngine.class).changeState(new StateLoading(new WorldInfo(org.terasology.logic.manager.Config.getInstance().getWorldTitle(), org.terasology.logic.manager.Config.getInstance().getDefaultSeed(), org.terasology.logic.manager.Config.getInstance().getDayNightLengthInMs() / 4, chunksListArr, CoreRegistry.get(GameType.class).getClass().toString(), modConfig)));
+                
+                final org.terasology.logic.manager.Config config = org.terasology.logic.manager.Config.getInstance();
+                CoreRegistry.get(GameEngine.class).changeState(new StateLoading(new WorldInfo(config.getWorldTitle(), config.getDefaultSeed(), config.getDayNightLengthInMs() / 4, getSelectedChunkType(), chunksListArr, CoreRegistry.get(GameType.class).getClass().toString(), modConfig)));
             }
         });
 

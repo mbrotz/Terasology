@@ -2,6 +2,7 @@ package org.terasology.world.chunks.store;
 
 import org.terasology.TerasologyDevelopment;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.chunks.storage.ChunkStore;
 import org.terasology.world.chunks.storage.ChunkStoreDeflate;
 import org.terasology.world.chunks.storage.ChunkStoreFileSystem;
@@ -18,7 +19,7 @@ public final class ChunkCachePerformanceTest {
     public ChunkCachePerformanceTest(final int size) {
         chunks = new Chunk[size];
         for (int k = 0; k < size; ++k) {
-            chunks[k] = new Chunk(k, 0, 0);
+            chunks[k] = new Chunk(ChunkType.Classic, k, 0, 0);
         }
     }
 

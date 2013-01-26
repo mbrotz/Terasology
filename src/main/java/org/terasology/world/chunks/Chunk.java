@@ -87,13 +87,16 @@ public class Chunk implements Externalizable {
 
     private boolean disposed = false;
 
-    protected ChunkType getDefaultChunkType() {
-        return ChunkType.Default;
-    }
-
+    /**
+     * This constructor is for compatibility only and will be removed later.
+     */
     @Deprecated
     public Chunk() {
-        chunkType = getDefaultChunkType();
+        this(ChunkType.Classic);
+    }
+    
+    public Chunk(ChunkType chunkType) {
+        this.chunkType = Preconditions.checkNotNull(chunkType, "The parameter 'chunkType' must not be null");
         final Chunks c = Chunks.getInstance();
         blockData = c.getBlockDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         sunlightData = c.getSunlightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
@@ -102,15 +105,15 @@ public class Chunk implements Externalizable {
         dirty = true;
     }
 
-    public Chunk(int x, int y, int z) {
-        this();
+    public Chunk(ChunkType chunkType, int x, int y, int z) {
+        this(chunkType);
         pos.x = x;
         pos.y = y;
         pos.z = z;
     }
 
-    public Chunk(Vector3i pos) {
-        this(pos.x, pos.y, pos.z);
+    public Chunk(ChunkType chunkType, Vector3i pos) {
+        this(chunkType, pos.x, pos.y, pos.z);
     }
 
     public Chunk(Chunk other) {
@@ -174,14 +177,11 @@ public class Chunk implements Externalizable {
             final ChunkState state = ChunkState.getStateById(message.getState());
             if (state == null)
                 throw new IllegalArgumentException("Illformed protobuf message. Unknown chunk state: " + message.getState());
-            final ChunkType chunkType;
             if (!message.hasType())
-                chunkType = ChunkType.Classic;
-            else {
-                chunkType = ChunkType.getTypeById(message.getType());
-                if (chunkType == null) 
-                    throw new IllegalArgumentException("Illformed protobuf message. Unknown chunk type: " + message.getType());
-            }
+                throw new IllegalArgumentException("Illformed protobuf message. Missing chunk type.");
+            final ChunkType chunkType = ChunkType.getTypeById(message.getType());
+            if (chunkType == null) 
+                throw new IllegalArgumentException("Illformed protobuf message. Unknown chunk type: " + message.getType());
             if (!message.hasBlockData())
                 throw new IllegalArgumentException("Illformed protobuf message. Missing block data.");
             if (!message.hasSunlightData())

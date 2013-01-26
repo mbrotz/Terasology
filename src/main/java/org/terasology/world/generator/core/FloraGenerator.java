@@ -65,10 +65,11 @@ public class FloraGenerator implements ChunkGenerator {
     @Override
     public void generateChunk(Chunk c) {
         // TODO: Better seeding mechanism
+        final ChunkType chunkType = c.getChunkType();
         FastRandom random = new FastRandom(worldSeed.hashCode() ^ (c.getPos().x + 39L * (c.getPos().y + 39L * c.getPos().z)));
-        for (int y = 0; y < ChunkType.Default.sizeY; y++) {
-            for (int x = 0; x < ChunkType.Default.sizeX; x++) {
-                for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
+        for (int y = 0; y < chunkType.sizeY; y++) {
+            for (int x = 0; x < chunkType.sizeX; x++) {
+                for (int z = 0; z < chunkType.sizeZ; z++) {
                     generateGrassAndFlowers(c, x, y, z, random);
                 }
             }

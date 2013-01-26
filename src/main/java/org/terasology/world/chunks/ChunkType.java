@@ -12,7 +12,7 @@ import org.terasology.math.Vector3i;
  */
 public enum ChunkType {
 
-    Classic(16, 256, 16, 0, false) {
+    Classic(16, 256, 16, 0, false, true) {
         
         @Override
         public int calcChunkPosY(int worldBlockPosY) {
@@ -24,31 +24,56 @@ public enum ChunkType {
             return worldBlockPosY;
         }
     }, 
-    
-    Miniature(512, 256, 512, 1, false){
-        
-        @Override
-        public int calcChunkPosY(int worldBlockPosY) {
-            return 0;
-        }
-        
-        @Override
-        public int calcBlockPosY(int worldBlockPosY) {
-            return worldBlockPosY;
-        }
-    }, 
-    
-    Stackable(16, 16, 16, 2, true);
 
-    public static final ChunkType Default = ChunkType.Classic;
+    Small(16, 128, 16, 1, false, true) {
+        
+        @Override
+        public int calcChunkPosY(int worldBlockPosY) {
+            return 0;
+        }
+        
+        @Override
+        public int calcBlockPosY(int worldBlockPosY) {
+            return worldBlockPosY;
+        }
+    }, 
+
+    Tall(16, 512, 16, 2, false, true) {
+        
+        @Override
+        public int calcChunkPosY(int worldBlockPosY) {
+            return 0;
+        }
+        
+        @Override
+        public int calcBlockPosY(int worldBlockPosY) {
+            return worldBlockPosY;
+        }
+    }, 
     
-    private ChunkType(int sizeX, int sizeY, int sizeZ, int id, boolean isStackable) {
+    Stackable(16, 16, 16, 31, true, true),
+
+    Miniature(512, 256, 512, 127, false, false){
+        
+        @Override
+        public int calcChunkPosY(int worldBlockPosY) {
+            return 0;
+        }
+        
+        @Override
+        public int calcBlockPosY(int worldBlockPosY) {
+            return worldBlockPosY;
+        }
+    };
+    
+    private ChunkType(int sizeX, int sizeY, int sizeZ, int id, boolean isStackable, boolean isSelectable) {
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
         this.id = id;
         this.isStackable = isStackable;
         this.fStackable = isStackable ? 1 : 0;
+        this.isSelectable = isSelectable;
         this.chunkPosFilterX = TeraMath.ceilPowerOfTwo(sizeX) - 1;
         this.chunkPosFilterY = isStackable ? TeraMath.ceilPowerOfTwo(sizeY) - 1 : 0;
         this.chunkPosFilterZ = TeraMath.ceilPowerOfTwo(sizeZ) - 1;
@@ -65,6 +90,8 @@ public enum ChunkType {
     
     public final boolean isStackable;
     public final int fStackable;
+    
+    public final boolean isSelectable;
     
     public final int chunkPosFilterX;
     public final int chunkPosFilterY;
@@ -263,8 +290,10 @@ public enum ChunkType {
     public static final ChunkType getTypeById(int id) {
         switch (id) {
         case 0: return Classic;
-        case 1: return Miniature;
-        case 2: return Stackable;
+        case 1: return Small;
+        case 2: return Tall;
+        case 31: return Stackable;
+        case 127: return Miniature;
         }
         return null;
     }

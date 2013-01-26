@@ -27,6 +27,8 @@ import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.ChunkGenerator;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Create a flat world with a specified height. It use the WorldBiomeProvider
  * but not the seed.
@@ -37,7 +39,7 @@ public class FlatTerrainGenerator implements ChunkGenerator {
 
     private static final String INIT_PARAMETER_HEIGHT = "height";
     // TODO FlatTerrainGenerator: What is a good value for MAX_Y?
-    public static final int MAX_HEIGHT = ChunkType.Default.sizeY - 100;
+    public static final int MAX_HEIGHT = ChunkType.Classic.sizeY - 100;
     public static final int MIN_HEIGHT = 0;
     public static final int DEFAULT_HEIGHT = 50;
 
@@ -117,11 +119,12 @@ public class FlatTerrainGenerator implements ChunkGenerator {
 
     @Override
     public void generateChunk(final Chunk chunk) {
-        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
-            for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
+        Preconditions.checkArgument(chunk.getChunkType() == ChunkType.Classic, "Only ChunkType.Classic is supported.");
+        for (int x = 0; x < ChunkType.Classic.sizeX; x++) {
+            for (int z = 0; z < ChunkType.Classic.sizeZ; z++) {
                 final WorldBiomeProvider.Biome type = biomeProvider.getBiomeAt(chunk.getBlockWorldPosX(x), chunk.getBlockWorldPosZ(z));
 
-                for (int y = ChunkType.Default.sizeY-1; y >= 0; y--) {
+                for (int y = ChunkType.Classic.sizeY-1; y >= 0; y--) {
                     if (y == 0) {
                         // bedrock/mantle
                         chunk.setBlock(x, y, z, mantle);
@@ -171,5 +174,4 @@ public class FlatTerrainGenerator implements ChunkGenerator {
             }
         }
     }
-
 }

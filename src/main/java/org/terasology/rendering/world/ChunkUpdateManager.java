@@ -48,10 +48,12 @@ public final class ChunkUpdateManager {
 
     private final ChunkTessellator tessellator;
     private final WorldProvider worldProvider;
+    private final ChunkType chunkType;
 
     public ChunkUpdateManager(ChunkTessellator tessellator, WorldProvider worldProvider) {
         this.tessellator = tessellator;
         this.worldProvider = worldProvider;
+        this.chunkType = worldProvider.getChunkType();
     }
 
     /**
@@ -85,7 +87,7 @@ public final class ChunkUpdateManager {
                 if (worldView != null) {
                     c.setDirty(false);
                     for (int seg = 0; seg < WorldRenderer.VERTICAL_SEGMENTS; seg++) {
-                        newMeshes[seg] = tessellator.generateMesh(worldView, c.getPos(), ChunkType.Default.sizeY / WorldRenderer.VERTICAL_SEGMENTS, seg * (ChunkType.Default.sizeY / WorldRenderer.VERTICAL_SEGMENTS));
+                        newMeshes[seg] = tessellator.generateMesh(worldView, c.getPos(), chunkType.sizeY / WorldRenderer.VERTICAL_SEGMENTS, seg * (chunkType.sizeY / WorldRenderer.VERTICAL_SEGMENTS));
                     }
 
                     c.setPendingMesh(newMeshes);

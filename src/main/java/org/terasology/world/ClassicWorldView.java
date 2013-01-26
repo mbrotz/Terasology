@@ -58,12 +58,11 @@ import com.google.common.base.Preconditions;
 @Deprecated
 public class ClassicWorldView {
 
-    private Vector3i offset;
-    private Region3i chunkRegion;
-    private Region3i blockRegion;
-    private Chunk[][] chunks;
-    
-    private ChunkType chunkType;
+    private final Vector3i offset;
+    private final Region3i chunkRegion;
+    private final Region3i blockRegion;
+    private final ChunkType chunkType;
+    private final Chunk[][] chunks;
 
     public static ClassicWorldView createLocalView(Vector3i chunkPos, ChunkProvider chunkProvider) {
         final ChunkType chunkType = chunkProvider.getChunkType();
@@ -105,9 +104,22 @@ public class ClassicWorldView {
         this.chunks = Preconditions.checkNotNull(chunks, "The parameter 'chunks' must not be null");
         this.chunkRegion = Preconditions.checkNotNull(chunkRegion, "The parameter 'chunkRegion' must not be null");
         this.offset = Preconditions.checkNotNull(offset, "The parameter 'offset' must not be null");
-        setChunkType(chunkType);
+        this.chunkType = Preconditions.checkNotNull(chunkType, "The parameter 'chunkType' must not be null");
+        
+        final Vector3i blockMin = new Vector3i();
+        blockMin.sub(offset);
+        blockMin.mult(chunkType.sizeX, chunkType.sizeY, chunkType.sizeZ);
+        
+        final Vector3i blockSize = chunkRegion.size();
+        blockSize.mult(chunkType.sizeX, chunkType.sizeY, chunkType.sizeZ);
+        
+        this.blockRegion = Region3i.createFromMinAndSize(blockMin, blockSize);
     }
 
+    public ChunkType getChunkType() {
+        return chunkType;
+    }
+    
     public Region3i getChunkRegion() {
         return chunkRegion;
     }
@@ -269,19 +281,6 @@ public class ClassicWorldView {
         return getChunkFromChunkPos(chunk.x, chunk.y, chunk.z);
     }
     
-    public void setChunkType(ChunkType chunkType) {
-        Preconditions.checkNotNull(chunkType, "The parameter 'chunkType' must not be null");
-        if (this.chunkType != chunkType) {
-            this.chunkType = chunkType;
-            final Vector3i blockMin = new Vector3i();
-            blockMin.sub(offset);
-            blockMin.mult(chunkType.sizeX, chunkType.sizeY * chunkType.fStackable, chunkType.sizeZ);
-            final Vector3i blockSize = chunkRegion.size();
-            blockSize.mult(chunkType.sizeX, chunkType.sizeY, chunkType.sizeZ);
-            this.blockRegion = Region3i.createFromMinAndSize(blockMin, blockSize);
-        }
-    }
-
     public Vector3i toWorldPos(Vector3i localPos) {
         final int worldPosX = localPos.x + (offset.x + chunkRegion.min().x) * chunkType.sizeX;
         final int worldPosY = chunkType.isStackable ? localPos.y + (offset.y + chunkRegion.min().y) * chunkType.sizeY : localPos.y;

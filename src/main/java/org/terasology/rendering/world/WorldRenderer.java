@@ -107,6 +107,7 @@ import org.terasology.world.chunks.storage.ChunkStoreGZip;
 import org.terasology.world.chunks.storage.ChunkStoreProtobuf;
 import org.terasology.world.generator.core.ChunkGeneratorManager;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 /**
@@ -126,6 +127,7 @@ public final class WorldRenderer {
     private static final Logger logger = LoggerFactory.getLogger(WorldRenderer.class);
 
     /* WORLD PROVIDER */
+    private final ChunkType chunkType;
     private final WorldProvider _worldProvider;
     private ChunkProvider _chunkProvider;
     private ChunkStore chunkStore;
@@ -147,13 +149,14 @@ public final class WorldRenderer {
     /* CHUNKS */
     private ChunkTessellator _chunkTesselator;
     private boolean _pendingChunks = false;
+    private final ChunkProximityComparator chunkProximityComparator;
     private final List<Chunk> _chunksInProximity = Lists.newLinkedList();
     private int _chunkPosX, _chunkPosY, _chunkPosZ;
 
     /* RENDERING */
     private final LinkedList<Chunk> _renderQueueChunksOpaque = Lists.newLinkedList();
-    private final PriorityQueue<Chunk> _renderQueueChunksSortedWater = new PriorityQueue<Chunk>(16 * 16, new ChunkProximityComparator());
-    private final PriorityQueue<Chunk> _renderQueueChunksSortedBillboards = new PriorityQueue<Chunk>(16 * 16, new ChunkProximityComparator());
+    private final PriorityQueue<Chunk> _renderQueueChunksSortedWater;
+    private final PriorityQueue<Chunk> _renderQueueChunksSortedBillboards;
 
     /* HORIZON */
     private final Skysphere _skysphere;
@@ -186,6 +189,21 @@ public final class WorldRenderer {
     private static short playround; 
 
     private ComponentSystemManager _systemManager;
+    
+    private ChunkStore loadChunkStore(WorldInfo worldInfo) {
+        // TODO: Cleaner method for this? Should not be using the world title
+        final File f = new File(PathManager.getInstance().getWorldSavePath(worldInfo.getTitle()), worldInfo.getTitle() + ".dat");
+        if (f.exists()) {
+            try {
+                return loadChunkStore(f);
+            } catch (IOException e) {
+                // TODO: We really should expose this error via UI so player knows that there is an issue with their world
+                //       (don't have the game continue or we risk overwriting their game)
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
     
     private ChunkStore loadChunkStore(File file) throws IOException {
         FileInputStream fileIn = null;
@@ -232,22 +250,12 @@ public final class WorldRenderer {
      * @param worldInfo Information describing the world
      */
     public WorldRenderer(WorldInfo worldInfo, ChunkGeneratorManager chunkGeneratorManager, EntityManager manager, LocalPlayerSystem localPlayerSystem) {
-        // TODO: Cleaner method for this? Should not be using the world title
-        File f = new File(PathManager.getInstance().getWorldSavePath(worldInfo.getTitle()), worldInfo.getTitle() + ".dat");
-        if (f.exists()) {
-            try {
-                chunkStore = loadChunkStore(f);
-            } catch (IOException e) {
-                /* TODO: We really should expose this error via UI so player knows that there is an issue with their world
-                   (don't have the game continue or we risk overwriting their game)
-                 */
-                e.printStackTrace();
-            }
-        }
+        chunkType = worldInfo.getChunkType();
+        chunkStore = loadChunkStore(worldInfo);
         if (chunkStore == null) {
             chunkStore = new ChunkStoreProtobuf();
         }
-        _chunkProvider = new LocalChunkProvider(ChunkType.Default, chunkStore, chunkGeneratorManager);
+        _chunkProvider = new LocalChunkProvider(chunkType, chunkStore, chunkGeneratorManager);
         EntityAwareWorldProvider entityWorldProvider = new EntityAwareWorldProvider(new WorldProviderCoreImpl(worldInfo, _chunkProvider));
         CoreRegistry.put(BlockEntityRegistry.class, entityWorldProvider);
         CoreRegistry.get(ComponentSystemManager.class).register(entityWorldProvider, "engine:BlockEntityRegistry");
@@ -259,6 +267,10 @@ public final class WorldRenderer {
         _worldTimeEventManager = new WorldTimeEventManager(_worldProvider);
         _blockGrid = new BlockGrid();
 
+        chunkProximityComparator = new ChunkProximityComparator(chunkType);
+        _renderQueueChunksSortedWater = new PriorityQueue<Chunk>(16 * 16, chunkProximityComparator);
+        _renderQueueChunksSortedBillboards = new PriorityQueue<Chunk>(16 * 16, chunkProximityComparator);
+        
         // TODO: won't need localPlayerSystem here once camera is in the ES proper
         localPlayerSystem.setPlayerCamera(_defaultCamera);
         _systemManager = CoreRegistry.get(ComponentSystemManager.class);
@@ -286,7 +298,7 @@ public final class WorldRenderer {
             // just add all visible chunks
 //            if (_chunksInProximity.size() == 0 || force || _pendingChunks) {
                 _chunksInProximity.clear();
-                if (ChunkType.Default.isStackable) {
+                if (chunkType.isStackable) {
                     for (int y = -viewDistHalf; y < viewDistHalf; y++) {
                         for (int x = -viewDistHalf; x < viewDistHalf; x++) {
                             for (int z = -viewDistHalf; z < viewDistHalf; z++) {
@@ -314,7 +326,7 @@ public final class WorldRenderer {
 //            }
 //            // adjust proximity chunk list
 //            else {
-//                if (ChunkType.Default.isStackable)
+//                if (chunkType.isStackable)
 //                    throw new RuntimeException();
 //                
 //                Rect2i oldView = new Rect2i(_chunkPosX - viewDistHalf, _chunkPosZ - viewDistHalf, viewDist, viewDist);
@@ -352,7 +364,7 @@ public final class WorldRenderer {
             _chunkPosZ = newChunkPosZ;
 
 
-            Collections.sort(_chunksInProximity, new ChunkProximityComparator());
+            Collections.sort(_chunksInProximity, chunkProximityComparator);
 
             return true;
         }
@@ -362,6 +374,12 @@ public final class WorldRenderer {
 
     private static class ChunkProximityComparator implements Comparator<Chunk> {
 
+        private final ChunkType chunkType;
+        
+        public ChunkProximityComparator(ChunkType chunkType) {
+            this.chunkType = Preconditions.checkNotNull(chunkType);
+        }
+        
         @Override
         public int compare(Chunk o1, Chunk o2) {
             double distance = distanceToCamera(o1);
@@ -380,7 +398,7 @@ public final class WorldRenderer {
         }
 
         private float distanceToCamera(Chunk chunk) {
-            Vector3f result = new Vector3f((chunk.getPos().x + 0.5f) * ChunkType.Default.sizeX, (chunk.getPos().y + 0.5f) * ChunkType.Default.sizeY * ChunkType.Default.fStackable, (chunk.getPos().z + 0.5f) * ChunkType.Default.sizeZ);
+            Vector3f result = new Vector3f((chunk.getPos().x + 0.5f) * chunkType.sizeX, (chunk.getPos().y + 0.5f) * chunkType.sizeY * chunkType.fStackable, (chunk.getPos().z + 0.5f) * chunkType.sizeZ);
 
             Vector3f cameraPos = CoreRegistry.get(WorldRenderer.class).getActiveCamera().getPosition();
             result.x -= cameraPos.x;
@@ -742,14 +760,14 @@ public final class WorldRenderer {
         if (chunk.getChunkState() == ChunkState.COMPLETE && chunk.getMesh() != null) {
             ShaderProgram shader = ShaderManager.getInstance().getShaderProgram("chunk");
             // Transfer the world offset of the chunk to the shader for various effects
-            shader.setFloat3("chunkOffset", (float) (chunk.getPos().x * ChunkType.Default.sizeX), (float) (chunk.getPos().y * ChunkType.Default.sizeY), (float) (chunk.getPos().z * ChunkType.Default.sizeZ));
+            shader.setFloat3("chunkOffset", (float) (chunk.getPos().x * chunkType.sizeX), (float) (chunk.getPos().y * chunkType.sizeY), (float) (chunk.getPos().z * chunkType.sizeZ));
             shader.setFloat("animated", chunk.getAnimated() ? 1.0f: 0.0f);
             shader.setFloat("clipHeight", camera.getClipHeight());
 
             GL11.glPushMatrix();
 
             Vector3f cameraPosition = camera.getPosition();
-            GL11.glTranslated(chunk.getPos().x * ChunkType.Default.sizeX - cameraPosition.x, chunk.getPos().y * ChunkType.Default.sizeY - cameraPosition.y, chunk.getPos().z * ChunkType.Default.sizeZ - cameraPosition.z);
+            GL11.glTranslated(chunk.getPos().x * chunkType.sizeX - cameraPosition.x, chunk.getPos().y * chunkType.sizeY - cameraPosition.y, chunk.getPos().z * chunkType.sizeZ - cameraPosition.z);
 
             for (int i = 0; i < VERTICAL_SEGMENTS; i++) {
                 if (!chunk.getMesh()[i].isEmpty()) {
@@ -875,7 +893,7 @@ public final class WorldRenderer {
      * @return The maximum height
      */
     public final int maxHeightAt(int x, int y, int z) {
-        for (int j = ChunkType.Default.sizeY - 1; j >= 0; j--) {
+        for (int j = chunkType.sizeY - 1; j >= 0; j--) {
             if (_worldProvider.getBlock(x, y + j, z).getId() != 0x0)
                 return j;
         }
@@ -889,7 +907,7 @@ public final class WorldRenderer {
      * @return The player offset on the x-axis
      */
     private int calcCamChunkOffsetX() {
-        return (int) (getActiveCamera().getPosition().x / ChunkType.Default.sizeX);
+        return (int) (getActiveCamera().getPosition().x / chunkType.sizeX);
     }
 
     /**
@@ -898,7 +916,7 @@ public final class WorldRenderer {
      * @return The player offset on the y-axis
      */
     private int calcCamChunkOffsetY() {
-        return (int) (getActiveCamera().getPosition().y / ChunkType.Default.sizeY) * ChunkType.Default.fStackable;
+        return (int) (getActiveCamera().getPosition().y / chunkType.sizeY) * chunkType.fStackable;
     }
 
     /**
@@ -907,7 +925,7 @@ public final class WorldRenderer {
      * @return The player offset on the z-axis
      */
     private int calcCamChunkOffsetZ() {
-        return (int) (getActiveCamera().getPosition().z / ChunkType.Default.sizeZ);
+        return (int) (getActiveCamera().getPosition().z / chunkType.sizeZ);
     }
 
     /**
@@ -975,7 +993,7 @@ public final class WorldRenderer {
         int viewDistHalf = Config.getInstance().getActiveViewingDistance() / 2;
 
         _chunkProvider.update();
-        for (Vector3i pos : Region3i.createFromCenterExtents(new Vector3i(newChunkPosX, newChunkPosY * ChunkType.Default.fStackable, newChunkPosZ), new Vector3i(viewDistHalf, viewDistHalf * ChunkType.Default.fStackable, viewDistHalf))) {
+        for (Vector3i pos : Region3i.createFromCenterExtents(new Vector3i(newChunkPosX, newChunkPosY * chunkType.fStackable, newChunkPosZ), new Vector3i(viewDistHalf, viewDistHalf * chunkType.fStackable, viewDistHalf))) {
             Chunk chunk = _chunkProvider.getChunk(pos);
             if (chunk == null || chunk.getChunkState() != ChunkState.COMPLETE) {
                 complete = false;
@@ -989,7 +1007,7 @@ public final class WorldRenderer {
 
                 ChunkMesh[] newMeshes = new ChunkMesh[VERTICAL_SEGMENTS];
                 for (int seg = 0; seg < VERTICAL_SEGMENTS; seg++) {
-                    newMeshes[seg] = _chunkTesselator.generateMesh(view, chunk.getPos(), ChunkType.Default.sizeY / VERTICAL_SEGMENTS, seg * (ChunkType.Default.sizeY / VERTICAL_SEGMENTS));
+                    newMeshes[seg] = _chunkTesselator.generateMesh(view, chunk.getPos(), chunkType.sizeY / VERTICAL_SEGMENTS, seg * (chunkType.sizeY / VERTICAL_SEGMENTS));
                 }
 
                 chunk.setPendingMesh(newMeshes);

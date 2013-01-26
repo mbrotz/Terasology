@@ -76,15 +76,16 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
 
     @Override
     public void generateChunk(Chunk c) {
-        double[][][] densityMap = new double[ChunkType.Default.sizeX + 1][ChunkType.Default.sizeY + 1][ChunkType.Default.sizeZ + 1];
+        final ChunkType chunkType = c.getChunkType();
+        double[][][] densityMap = new double[chunkType.sizeX + 1][chunkType.sizeY + 1][chunkType.sizeZ + 1];
 
         /*
          * Create the density map at a lower sample rate.
          */
-        for (int x = 0; x <= ChunkType.Default.sizeX; x += SAMPLE_RATE_3D_HOR) {
-            for (int z = 0; z <= ChunkType.Default.sizeZ; z += SAMPLE_RATE_3D_HOR) {
-                for (int y = 0; y <= ChunkType.Default.sizeY; y += SAMPLE_RATE_3D_VERT) {
-                    densityMap[x][y][z] = calcDensity(c.getBlockWorldPosX(x), y, c.getBlockWorldPosZ(z));
+        for (int x = 0; x <= chunkType.sizeX; x += SAMPLE_RATE_3D_HOR) {
+            for (int z = 0; z <= chunkType.sizeZ; z += SAMPLE_RATE_3D_HOR) {
+                for (int y = 0; y <= chunkType.sizeY; y += SAMPLE_RATE_3D_VERT) {
+                    densityMap[x][y][z] = calcDensity(chunkType, c.getBlockWorldPosX(x), y, c.getBlockWorldPosZ(z));
                 }
             }
         }
@@ -92,17 +93,17 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
         /*
          * Trilinear interpolate the missing values.
          */
-        triLerpDensityMap(densityMap);
+        triLerpDensityMap(chunkType, densityMap);
 
         /*
          * Generate the chunk from the density map.
          */
-        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
-            for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
+        for (int x = 0; x < chunkType.sizeX; x++) {
+            for (int z = 0; z < chunkType.sizeZ; z++) {
                 WorldBiomeProvider.Biome type = biomeProvider.getBiomeAt(c.getBlockWorldPosX(x), c.getBlockWorldPosZ(z));
                 int firstBlockHeight = -1;
 
-                for (int y = ChunkType.Default.sizeY-1; y >= 0; y--) {
+                for (int y = chunkType.sizeY-1; y >= 0; y--) {
 
                     if (y == 0) { // The very deepest layer of the world is an indestructible mantle
                         c.setBlock(x, y, z, mantle);
@@ -212,10 +213,10 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
         }
     }
 
-    private void triLerpDensityMap(double[][][] densityMap) {
-        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
-            for (int y = 0; y < ChunkType.Default.sizeY; y++) {
-                for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
+    private void triLerpDensityMap(ChunkType chunkType, double[][][] densityMap) {
+        for (int x = 0; x < chunkType.sizeX; x++) {
+            for (int y = 0; y < chunkType.sizeY; y++) {
+                for (int z = 0; z < chunkType.sizeZ; z++) {
                     if (!(x % SAMPLE_RATE_3D_HOR == 0 && y % SAMPLE_RATE_3D_VERT == 0 && z % SAMPLE_RATE_3D_HOR == 0)) {
                         int offsetX = (x / SAMPLE_RATE_3D_HOR) * SAMPLE_RATE_3D_HOR;
                         int offsetY = (y / SAMPLE_RATE_3D_VERT) * SAMPLE_RATE_3D_VERT;
@@ -227,7 +228,7 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
         }
     }
 
-    public double calcDensity(int x, int y, int z) {
+    public double calcDensity(ChunkType chunkType, int x, int y, int z) {
         double height = calcBaseTerrain(x, z);
         double ocean = calcOceanTerrain(x, z);
         double river = calcRiverTerrain(x, z);
@@ -241,8 +242,8 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
         double densityMountains = calcMountainDensity(x, y, z) * mIntens;
         double densityHills = calcHillDensity(x, y, z) * (1.0 - mIntens);
 
-        int plateauArea = (int) (ChunkType.Default.sizeY * 0.10);
-        double flatten = TeraMath.clamp(((ChunkType.Default.sizeY - 16) - y) / plateauArea);
+        int plateauArea = (int) (chunkType.sizeY * 0.10);
+        double flatten = TeraMath.clamp(((chunkType.sizeY - 16) - y) / plateauArea);
 
         return -y + (((32.0 + height * 32.0) * TeraMath.clamp(river + 0.25) * TeraMath.clamp(ocean + 0.25)) + densityMountains * 1024.0 + densityHills * 128.0) * flatten;
     }

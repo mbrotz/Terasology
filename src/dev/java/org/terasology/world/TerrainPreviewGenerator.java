@@ -26,6 +26,7 @@ import javax.vecmath.Vector4f;
 
 import org.terasology.TerasologyDevelopment;
 import org.terasology.world.block.Block;
+import org.terasology.world.chunks.ChunkType;
 import org.terasology.world.generator.core.PerlinTerrainGenerator;
 
 /**
@@ -33,6 +34,7 @@ import org.terasology.world.generator.core.PerlinTerrainGenerator;
  * generator.
  * 
  * @author Benjamin Glatzel <benjamin.glatzel@me.com>
+ * @todo Support different chunk types. It's currently hardcoded for ChunkType.Classic
  */
 public final class TerrainPreviewGenerator {
 
@@ -47,7 +49,8 @@ public final class TerrainPreviewGenerator {
     private static final Vector2f POSITION = new Vector2f(0.0f, 0.0f);
 
     private final WorldBiomeProvider biomeProvider;
-    PerlinTerrainGenerator generator;
+    
+    private final PerlinTerrainGenerator generator;
 
     public static void main(final String[] args) {
         final TerrainPreviewGenerator gen = new TerrainPreviewGenerator(SEED);
@@ -96,7 +99,7 @@ public final class TerrainPreviewGenerator {
                         }
 
                         for (int height = 256; height > 0; height -= 4) {
-                            final double n = generator.calcDensity((x * ZOOM_FACTOR) + (int) POSITION.x, height - 1, (z * ZOOM_FACTOR) + (int) POSITION.y);
+                            final double n = generator.calcDensity(ChunkType.Classic, (x * ZOOM_FACTOR) + (int) POSITION.x, height - 1, (z * ZOOM_FACTOR) + (int) POSITION.y);
 
                             if (n >= 0) {
                                 if (height > 32) {
@@ -125,7 +128,7 @@ public final class TerrainPreviewGenerator {
                         }
 
                         for (int height = 256; height > 0; height -= 4) {
-                            final double n = generator.calcDensity((x * ZOOM_FACTOR) + (int) POSITION.x, height - 1, (z * ZOOM_FACTOR) + (int) POSITION.y);
+                            final double n = generator.calcDensity(ChunkType.Classic, (x * ZOOM_FACTOR) + (int) POSITION.x, height - 1, (z * ZOOM_FACTOR) + (int) POSITION.y);
 
                             if (n >= 0) {
                                 g.setColor(new Color(vecCol.x, vecCol.y, vecCol.z));

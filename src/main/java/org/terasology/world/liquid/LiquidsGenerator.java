@@ -53,9 +53,10 @@ public class LiquidsGenerator implements ChunkGenerator {
     @Override
     public void generateChunk(Chunk c) {
         // TODO: Better seeding mechanism
+        final ChunkType chunkType = c.getChunkType();
         FastRandom random = new FastRandom(seed.hashCode() ^ (c.getPos().x + 39L * (c.getPos().y + 39L * c.getPos().z)));
         boolean grassGenerated = false, lavaGenerated = false;
-        for (int y = ChunkType.Default.sizeY - 1; y >= 0; y -= 2) {
+        for (int y = chunkType.sizeY - 1; y >= 0; y -= 2) {
             Block currentBlock = c.getBlock(8, y, 8);
             if ((grass.equals(currentBlock) || snow.equals(currentBlock)) && !grassGenerated && y >= 32 && random.randomDouble() > 0.8) {
                 c.setBlock(8, y, 8, water, currentBlock);

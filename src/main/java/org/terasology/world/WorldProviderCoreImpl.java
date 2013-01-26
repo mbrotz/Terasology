@@ -95,7 +95,7 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
         for (Mod mod : CoreRegistry.get(ModManager.class).getActiveMods()) {
             modConfig.addMod(mod.getModInfo().getId());
         }
-        WorldInfo worldInfo = new WorldInfo(title, seed, getTime(), chunkGenerators, CoreRegistry.get(GameType.class).getClass().toString(), modConfig);
+        WorldInfo worldInfo = new WorldInfo(title, seed, getTime(), chunkProvider.getChunkType(), chunkGenerators, CoreRegistry.get(GameType.class).getClass().toString(), modConfig);
         worldInfo.setBlockIdMap(BlockManager.getInstance().getBlockIdMap());
         return worldInfo;
     }

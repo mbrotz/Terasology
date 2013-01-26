@@ -51,7 +51,7 @@ public class WorldViewTest {
 
     @Test
      public void simpleWorldView() {
-        Chunk chunk = new Chunk(new Vector3i());
+        Chunk chunk = new Chunk(type, new Vector3i());
         chunk.setBlock(new Vector3i(0,0,0), solidBlock);
 
         ClassicWorldView worldView = new ClassicWorldView(new Chunk[][] {{chunk}}, Region3i.createFromCenterExtents(Vector3i.zero(), Vector3i.zero()), new Vector3i(), type);
@@ -60,12 +60,12 @@ public class WorldViewTest {
 
     @Test
     public void offsetWorldView() {
-        Chunk chunk = new Chunk(new Vector3i());
+        Chunk chunk = new Chunk(type, new Vector3i());
         chunk.setBlock(new Vector3i(0,0,0), solidBlock);
 
-        Chunk[][] chunks = {{new Chunk(new Vector3i(-1,0,-1)), new Chunk(new Vector3i(0,0,-1)), new Chunk(new Vector3i(1,0,-1)),
-                                            new Chunk(new Vector3i(-1,0,0)), chunk, new Chunk(new Vector3i(1,0,0)),
-                                            new Chunk(new Vector3i(-1,0,1)), new Chunk(new Vector3i(0,0,1)), new Chunk(new Vector3i(1,0,1))}};
+        Chunk[][] chunks = {{new Chunk(type, new Vector3i(-1,0,-1)), new Chunk(type, new Vector3i(0,0,-1)), new Chunk(type, new Vector3i(1,0,-1)),
+                                            new Chunk(type, new Vector3i(-1,0,0)), chunk, new Chunk(type, new Vector3i(1,0,0)),
+                                            new Chunk(type, new Vector3i(-1,0,1)), new Chunk(type, new Vector3i(0,0,1)), new Chunk(type, new Vector3i(1,0,1))}};
 
         ClassicWorldView worldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1,0,1)), new Vector3i(1,1,1), type);
         assertEquals(solidBlock, worldView.getBlock(0, 0, 0));
@@ -73,12 +73,12 @@ public class WorldViewTest {
 
     @Test
     public void offsetWorldViewBeforeMainChunk() {
-        Chunk chunk = new Chunk(new Vector3i());
+        Chunk chunk = new Chunk(type, new Vector3i());
         chunk.setBlock(new Vector3i(15,0,15), solidBlock);
 
-        Chunk[][] chunks = {{chunk, new Chunk(new Vector3i(0,0,-1)), new Chunk(new Vector3i(1,0,-1)),
-                new Chunk(new Vector3i(-1,0,0)), new Chunk(new Vector3i(0,0,0)), new Chunk(new Vector3i(1,0,0)),
-                new Chunk(new Vector3i(-1,0,1)), new Chunk(new Vector3i(0,0,1)), new Chunk(new Vector3i(1,0,1))}};
+        Chunk[][] chunks = {{chunk, new Chunk(type, new Vector3i(0,0,-1)), new Chunk(type, new Vector3i(1,0,-1)),
+                new Chunk(type, new Vector3i(-1,0,0)), new Chunk(type, new Vector3i(0,0,0)), new Chunk(type, new Vector3i(1,0,0)),
+                new Chunk(type, new Vector3i(-1,0,1)), new Chunk(type, new Vector3i(0,0,1)), new Chunk(type, new Vector3i(1,0,1))}};
 
         ClassicWorldView worldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1,0,1)), new Vector3i(1,1,1), type);
         assertEquals(solidBlock, worldView.getBlock(-1, 0, -1));
@@ -86,12 +86,12 @@ public class WorldViewTest {
 
     @Test
     public void offsetWorldViewAfterMainChunk() {
-        Chunk chunk = new Chunk(new Vector3i());
+        Chunk chunk = new Chunk(type, new Vector3i());
         chunk.setBlock(new Vector3i(0,0,0), solidBlock);
 
-        Chunk[][] chunks = {{new Chunk(-1,0,-1), new Chunk(new Vector3i(0,0,-1)), new Chunk(new Vector3i(1,0,-1)),
-                new Chunk(new Vector3i(-1,0,0)), new Chunk(new Vector3i(0,0,0)), new Chunk(new Vector3i(1,0,0)),
-                new Chunk(new Vector3i(-1,0,1)), new Chunk(new Vector3i(0,0,1)), chunk}};
+        Chunk[][] chunks = {{new Chunk(type, new Vector3i(-1,0,-1)), new Chunk(type, new Vector3i(0,0,-1)), new Chunk(type, new Vector3i(1,0,-1)),
+                new Chunk(type, new Vector3i(-1,0,0)), new Chunk(type, new Vector3i(0,0,0)), new Chunk(type, new Vector3i(1,0,0)),
+                new Chunk(type, new Vector3i(-1,0,1)), new Chunk(type, new Vector3i(0,0,1)), chunk}};
 
         ClassicWorldView worldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(0, 0, 0), new Vector3i(1,0,1)), new Vector3i(1,1,1), type);
         assertEquals(solidBlock, worldView.getBlock(16, 0, 16));
@@ -99,12 +99,12 @@ public class WorldViewTest {
 
     @Test
     public void offsetChunksWorldView() {
-        Chunk chunk = new Chunk(new Vector3i(1,0,1));
+        Chunk chunk = new Chunk(type, new Vector3i(1,0,1));
         chunk.setBlock(new Vector3i(0,0,0), solidBlock);
 
-        Chunk[][] chunks = {{new Chunk(new Vector3i(0,0,0)), new Chunk(new Vector3i(1,0,0)), new Chunk(new Vector3i(2,0,0)),
-                new Chunk(new Vector3i(0,0,1)), chunk, new Chunk(new Vector3i(2,0,1)),
-                new Chunk(new Vector3i(0,0,2)), new Chunk(new Vector3i(1,0,2)), new Chunk(new Vector3i(2,0,2))}};
+        Chunk[][] chunks = {{new Chunk(type, new Vector3i(0,0,0)), new Chunk(type, new Vector3i(1,0,0)), new Chunk(type, new Vector3i(2,0,0)),
+                new Chunk(type, new Vector3i(0,0,1)), chunk, new Chunk(type, new Vector3i(2,0,1)),
+                new Chunk(type, new Vector3i(0,0,2)), new Chunk(type, new Vector3i(1,0,2)), new Chunk(type, new Vector3i(2,0,2))}};
 
         ClassicWorldView worldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(1, 0, 1), new Vector3i(1,0,1)), new Vector3i(1,1,1), type);
         assertEquals(solidBlock, worldView.getBlock(0, 0, 0));
@@ -112,14 +112,14 @@ public class WorldViewTest {
 
     @Test
     public void localToWorld() {
-        Chunk chunk = new Chunk(new Vector3i(1,0,1));
+        Chunk chunk = new Chunk(type, new Vector3i(1,0,1));
         chunk.setBlock(new Vector3i(0,0,0), solidBlock);
 
-        Chunk[][] chunks = {{new Chunk(new Vector3i(0,0,0)), new Chunk(new Vector3i(1,0,0)), new Chunk(new Vector3i(2,0,0)),
-                new Chunk(new Vector3i(0,0,1)), chunk, new Chunk(new Vector3i(2,0,1)),
-                new Chunk(new Vector3i(0,0,2)), new Chunk(new Vector3i(1,0,2)), new Chunk(new Vector3i(2,0,2))}};
+        Chunk[][] chunks = {{new Chunk(type, new Vector3i(0,0,0)), new Chunk(type, new Vector3i(1,0,0)), new Chunk(type, new Vector3i(2,0,0)),
+                new Chunk(type, new Vector3i(0,0,1)), chunk, new Chunk(type, new Vector3i(2,0,1)),
+                new Chunk(type, new Vector3i(0,0,2)), new Chunk(type, new Vector3i(1,0,2)), new Chunk(type, new Vector3i(2,0,2))}};
 
         ClassicWorldView worldView = new ClassicWorldView(chunks, Region3i.createFromCenterExtents(new Vector3i(1, 0, 1), new Vector3i(1,0,1)), new Vector3i(1,1,1), type);
-        assertEquals(new Vector3i(ChunkType.Default.sizeX, 0, ChunkType.Default.sizeZ), worldView.toWorldPos(Vector3i.zero()));
+        assertEquals(new Vector3i(type.sizeX, 0, type.sizeZ), worldView.toWorldPos(Vector3i.zero()));
     }
 }

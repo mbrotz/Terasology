@@ -30,7 +30,6 @@ import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.ClassicWorldView;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockPart;
-import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkType;
 
 /**
@@ -50,12 +49,13 @@ public final class ChunkTessellator {
 
     public ChunkMesh generateMesh(ClassicWorldView worldView, Vector3i chunkPos, int meshHeight, int verticalOffset) {
         PerformanceMonitor.startActivity("GenerateMesh");
-        ChunkMesh mesh = new ChunkMesh();
+        final ChunkType chunkType = worldView.getChunkType();
+        final ChunkMesh mesh = new ChunkMesh();
         
-        Vector3i chunkOffset = new Vector3i(chunkPos.x * ChunkType.Default.sizeX, chunkPos.y * ChunkType.Default.sizeY * ChunkType.Default.fStackable, chunkPos.z * ChunkType.Default.sizeZ);
+        final Vector3i chunkOffset = new Vector3i(chunkPos.x * chunkType.sizeX, chunkPos.y * chunkType.sizeY * chunkType.fStackable, chunkPos.z * chunkType.sizeZ);
 
-        for (int x = 0; x < ChunkType.Default.sizeX; x++) {
-            for (int z = 0; z < ChunkType.Default.sizeZ; z++) {
+        for (int x = 0; x < chunkType.sizeX; x++) {
+            for (int z = 0; z < chunkType.sizeZ; z++) {
                 float biomeTemp = biomeProvider.getTemperatureAt(chunkOffset.x + x, chunkOffset.z + z);
                 float biomeHumidity = biomeProvider.getHumidityAt(chunkOffset.x + x, chunkOffset.z + z);
 
@@ -246,7 +246,8 @@ public final class ChunkTessellator {
     }
 
     private void generateBlockVertices(ClassicWorldView view, ChunkMesh mesh, int x, int y, int z, float temp, float hum) {
-        Block block = view.getBlock(x, y, z);
+        final ChunkType chunkType = view.getChunkType();
+        final Block block = view.getBlock(x, y, z);
 
         /*
          * Determine the render process.
@@ -274,7 +275,7 @@ public final class ChunkTessellator {
             drawDir[side.ordinal()] = isSideVisibleForBlockTypes(blockToCheck, block, side);
         }
 
-        if (!ChunkType.Default.isStackable && y == 0) {
+        if (!chunkType.isStackable && y == 0) {
             drawDir[Side.BOTTOM.ordinal()] = false;
         }
 
