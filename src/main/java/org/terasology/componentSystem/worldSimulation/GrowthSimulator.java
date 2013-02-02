@@ -32,6 +32,7 @@ import org.terasology.entitySystem.RegisterComponentSystem;
 import org.terasology.game.CoreRegistry;
 import org.terasology.math.Side;
 import org.terasology.math.Vector3i;
+import org.terasology.monitoring.impl.GrowthSimulationMonitor;
 import org.terasology.world.BlockChangedEvent;
 import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.WorldProvider;
@@ -71,18 +72,25 @@ public class GrowthSimulator implements EventHandlerSystem {
         executor.execute(new Runnable() {
             @Override
             public void run() {
+                final GrowthSimulationMonitor monitor = new GrowthSimulationMonitor(Thread.currentThread());
                 Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-                while (running.get()) {
-                    try {
-                        Vector3i blockPos = blockQueue.take();
-                        if (world.isBlockActive(blockPos)) {
-                            if (simulate(blockPos)) {
-                                Thread.sleep(5000);
+                try {
+                    while (running.get()) {
+                        try {
+                            Vector3i blockPos = blockQueue.take();
+                            if (world.isBlockActive(blockPos)) {
+                                if (simulate(blockPos)) {
+                                    monitor.increment(0);
+                                    Thread.sleep(5000);
+                                }
                             }
+                        } catch (InterruptedException e) {
+                            monitor.addError(e);
+                            logger.debug("Thread interrupted", e);
                         }
-                    } catch (InterruptedException e) {
-                        logger.debug("Thread Interrupted", e);
                     }
+                } finally {
+                    monitor.setActive(false);
                 }
             }
         });

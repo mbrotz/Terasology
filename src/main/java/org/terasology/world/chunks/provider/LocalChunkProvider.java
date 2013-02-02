@@ -39,7 +39,9 @@ import org.terasology.game.CoreRegistry;
 import org.terasology.math.Region3i;
 import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
-import org.terasology.performanceMonitor.PerformanceMonitor;
+import org.terasology.monitoring.PerformanceMonitor;
+import org.terasology.monitoring.impl.ChunkProcessingMonitor;
+import org.terasology.monitoring.impl.ChunkRequestMonitor;
 import org.terasology.world.lighting.LightPropagator;
 import org.terasology.world.ClassicWorldView;
 import org.terasology.world.chunks.Chunk;
@@ -102,34 +104,42 @@ public class LocalChunkProvider implements ChunkProvider {
             reviewThreads.execute(new Runnable() {
                 @Override
                 public void run() {
-                    boolean running = true;
-                    Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-                    while (running) {
-
-                        try {
-                            ChunkRequest request = reviewChunkQueue.take();
-                            switch (request.getType()) {
-                                case REVIEW:
-                                    for (Vector3i pos : request.getRegion()) {
-                                        checkState(pos);
-                                    }
-                                    break;
-                                case PRODUCE:
-                                    for (Vector3i pos : request.getRegion()) {
-                                        checkOrCreateChunk(pos);
-                                    }
-                                    break;
-                                case EXIT:
-                                    running = false;
-                                    break;
+                    final ChunkRequestMonitor monitor = new ChunkRequestMonitor(Thread.currentThread());
+                    try {
+                        boolean running = true;
+                        Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+                        while (running) {
+                            try {
+                                ChunkRequest request = reviewChunkQueue.take();
+                                switch (request.getType()) {
+                                    case REVIEW:
+                                        for (Vector3i pos : request.getRegion()) {
+                                            checkState(pos);
+                                        }
+                                        monitor.increment(0);
+                                        break;
+                                    case PRODUCE:
+                                        for (Vector3i pos : request.getRegion()) {
+                                            checkOrCreateChunk(pos);
+                                        }
+                                        monitor.increment(1);
+                                        break;
+                                    case EXIT:
+                                        running = false;
+                                        break;
+                                }
+                            } catch (InterruptedException e) {
+                                monitor.addError(e);
+                                logger.error("Thread interrupted", e);
+                            } catch (Exception e) {
+                                monitor.addError(e);
+                                logger.error("Error in thread", e);
                             }
-                        } catch (InterruptedException e) {
-                            logger.error("Thread interrupted", e);
-                        } catch (Exception e) {
-                            logger.error("Error in thread", e);
                         }
+                        logger.debug("Thread shutdown safely");
+                    } finally {
+                        monitor.setActive(false);
                     }
-                    logger.debug("Thread shutdown safely");
                 }
             });
         }
@@ -140,23 +150,31 @@ public class LocalChunkProvider implements ChunkProvider {
             chunkProcessingThreads.submit(new Runnable() {
                 @Override
                 public void run() {
-                    boolean running = true;
-                    Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-                    while (running) {
-                        try {
-                            ChunkTask request = chunkTasksQueue.take();
-                            if (request.isShutdownRequest()) {
-                                running = false;
-                                break;
+                    final ChunkProcessingMonitor monitor = new ChunkProcessingMonitor(Thread.currentThread());
+                    try {
+                        boolean running = true;
+                        Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+                        while (running) {
+                            try {
+                                ChunkTask request = chunkTasksQueue.take();
+                                if (request.isShutdownRequest()) {
+                                    running = false;
+                                    break;
+                                }
+                                request.enact();
+                                monitor.increment(0);
+                            } catch (InterruptedException e) {
+                                monitor.addError(e);
+                                logger.error("Thread interrupted", e);
+                            } catch (Exception e) {
+                                monitor.addError(e);
+                                logger.error("Error in thread", e);
                             }
-                            request.enact();
-                        } catch (InterruptedException e) {
-                            logger.error("Thread interrupted", e);
-                        } catch (Exception e) {
-                            logger.error("Error in thread", e);
                         }
+                        logger.debug("Thread shutdown safely");
+                    } finally {
+                        monitor.setActive(false);
                     }
-                    logger.debug("Thread shutdown safely");
                 }
             });
         }
