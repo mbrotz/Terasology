@@ -19,7 +19,6 @@ import java.util.Set;
 
 import org.terasology.game.CoreRegistry;
 import org.terasology.game.GameEngine;
-import org.terasology.logic.manager.Config;
 import org.terasology.rendering.primitives.ChunkMesh;
 import org.terasology.rendering.primitives.ChunkTessellator;
 import org.terasology.world.WorldProvider;
@@ -41,7 +40,7 @@ public final class ChunkUpdateManager {
     }
 
     /* CONST */
-    private static final int MAX_THREADS = Config.getInstance().getMaxThreads();
+//    private static final int MAX_THREADS = Config.getInstance().getMaxThreads();
 
     /* CHUNK UPDATES */
     private static final Set<Chunk> currentlyProcessedChunks = Sets.newHashSet();
@@ -67,7 +66,7 @@ public final class ChunkUpdateManager {
     // TODO: Review this system
     public boolean queueChunkUpdate(Chunk chunk, final UPDATE_TYPE type) {
 
-        if (!currentlyProcessedChunks.contains(chunk) && (currentlyProcessedChunks.size() < MAX_THREADS || type != UPDATE_TYPE.DEFAULT)) {
+        if (!currentlyProcessedChunks.contains(chunk) || type != UPDATE_TYPE.DEFAULT) { // && (currentlyProcessedChunks.size() < MAX_THREADS || type != UPDATE_TYPE.DEFAULT)) {
             executeChunkUpdate(chunk);
             return true;
         }
@@ -82,16 +81,14 @@ public final class ChunkUpdateManager {
         Runnable r = new Runnable() {
             @Override
             public void run() {
-                ChunkMesh[] newMeshes = new ChunkMesh[WorldRenderer.VERTICAL_SEGMENTS];
                 ClassicWorldView worldView = worldProvider.getLocalView(c.getPos());
                 if (worldView != null) {
+                    ChunkMesh[] newMeshes = new ChunkMesh[WorldRenderer.VERTICAL_SEGMENTS];
                     c.setDirty(false);
                     for (int seg = 0; seg < WorldRenderer.VERTICAL_SEGMENTS; seg++) {
                         newMeshes[seg] = tessellator.generateMesh(worldView, c.getPos(), chunkType.sizeY / WorldRenderer.VERTICAL_SEGMENTS, seg * (chunkType.sizeY / WorldRenderer.VERTICAL_SEGMENTS));
                     }
-
                     c.setPendingMesh(newMeshes);
-
                 }
                 currentlyProcessedChunks.remove(c);
             }

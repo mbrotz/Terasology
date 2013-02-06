@@ -31,6 +31,8 @@ import org.terasology.game.CoreRegistry;
 import org.terasology.logic.manager.Config;
 import org.terasology.math.AABB;
 import org.terasology.math.Vector3i;
+import org.terasology.monitoring.ChunkMonitor;
+import org.terasology.monitoring.impl.ChunkEvent;
 import org.terasology.protobuf.ChunksProtobuf;
 import org.terasology.rendering.primitives.ChunkMesh;
 import org.terasology.world.block.Block;
@@ -103,6 +105,7 @@ public class Chunk implements Externalizable {
         lightData = c.getLightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         extraData = c.getExtraDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         dirty = true;
+        ChunkMonitor.registerChunk(this);
     }
 
     public Chunk(ChunkType chunkType, int x, int y, int z) {
@@ -125,6 +128,7 @@ public class Chunk implements Externalizable {
         extraData = other.extraData.copy();
         chunkState = other.chunkState;
         dirty = true;
+        ChunkMonitor.registerChunk(this);
     }
     
     public Chunk(ChunkType chunkType, Vector3i pos, ChunkState chunkState, TeraArray blocks, TeraArray sunlight, TeraArray light, TeraArray liquid) {
@@ -136,6 +140,7 @@ public class Chunk implements Externalizable {
         this.extraData = Preconditions.checkNotNull(liquid);
         this.chunkState = Preconditions.checkNotNull(chunkState);
         dirty = true;
+        ChunkMonitor.registerChunk(this);
     }
     
     /**
@@ -236,7 +241,11 @@ public class Chunk implements Externalizable {
 
     public void setChunkState(ChunkState chunkState) {
         Preconditions.checkNotNull(chunkState);
-        this.chunkState = chunkState;
+        if (this.chunkState != chunkState) {
+            final ChunkState old = this.chunkState;
+            this.chunkState = chunkState;
+            ChunkMonitor.getEventBus().post(new ChunkEvent.StateChanged(this, old));
+        }
     }
     
     public ChunkStatistics getStatistics(final boolean accurate) {
@@ -405,7 +414,7 @@ public class Chunk implements Externalizable {
     }
 
     public int getChunkWorldPosY() {
-        return pos.y * getChunkSizeY();
+        return pos.y * getChunkSizeY() * chunkType.fStackable;
     }
 
     public int getChunkWorldPosZ() {
@@ -435,7 +444,7 @@ public class Chunk implements Externalizable {
     public AABB getAABB() {
         if (aabb == null) {
             Vector3f dimensions = new Vector3f(0.5f * getChunkSizeX(), 0.5f * getChunkSizeY(), 0.5f * getChunkSizeZ());
-            Vector3f position = new Vector3f(getChunkWorldPosX() + dimensions.x - 0.5f, dimensions.y - 0.5f, getChunkWorldPosZ() + dimensions.z - 0.5f);
+            Vector3f position = new Vector3f(getChunkWorldPosX() + dimensions.x - 0.5f, getChunkWorldPosY() + dimensions.y - 0.5f, getChunkWorldPosZ() + dimensions.z - 0.5f);
             aabb = AABB.createCenterExtent(position, dimensions);
         }
 
@@ -502,12 +511,16 @@ public class Chunk implements Externalizable {
                 double liquidPercent = 100d - (100d / liquidSize * liquidReduced);
                 double totalPercent = 100d - (100d / totalSize * totalReduced);
 
+                ChunkMonitor.getEventBus().post(new ChunkEvent.Deflated(this, totalSize, totalReduced));
+                
                 logger.info(String.format("chunk (%d, %d, %d): size-before: %s bytes, size-after: %s bytes, total-deflated-by: %s%%, blocks-deflated-by=%s%%, sunlight-deflated-by=%s%%, light-deflated-by=%s%%, liquid-deflated-by=%s%%", pos.x, pos.y, pos.z, fsize.format(totalSize), fsize.format(totalReduced), fpercent.format(totalPercent), fpercent.format(blocksPercent), fpercent.format(sunlightPercent), fpercent.format(lightPercent), fpercent.format(liquidPercent)));
             } else {
+                final int oldSize = getEstimatedMemoryConsumptionInBytes();
                 blockData = def.deflate(blockData);
                 sunlightData = def.deflate(sunlightData);
                 lightData = def.deflate(lightData);
                 extraData = def.deflate(extraData);
+                ChunkMonitor.getEventBus().post(new ChunkEvent.Deflated(this, oldSize, getEstimatedMemoryConsumptionInBytes()));
             }
         } finally {
             unlock();
@@ -557,7 +570,7 @@ public class Chunk implements Externalizable {
 
             for (int i = 0; i < subMeshAABB.length; i++) {
                 Vector3f dimensions = new Vector3f(8, heightHalf, 8);
-                Vector3f position = new Vector3f(getChunkWorldPosX() + dimensions.x - 0.5f, (i * heightHalf * 2) + dimensions.y - 0.5f, getChunkWorldPosZ() + dimensions.z - 0.5f);
+                Vector3f position = new Vector3f(getChunkWorldPosX() + dimensions.x - 0.5f, getChunkWorldPosY() + (i * heightHalf * 2) + dimensions.y - 0.5f, getChunkWorldPosZ() + dimensions.z - 0.5f);
                 subMeshAABB[i] = AABB.createCenterExtent(position, dimensions);
             }
         }
@@ -573,6 +586,7 @@ public class Chunk implements Externalizable {
             }
             mesh = null;
         }
+        ChunkMonitor.getEventBus().post(new ChunkEvent.Disposed(this));
     }
 
     public boolean isDisposed() {

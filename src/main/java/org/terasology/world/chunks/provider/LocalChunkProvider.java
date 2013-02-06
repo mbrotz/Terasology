@@ -40,8 +40,8 @@ import org.terasology.math.Region3i;
 import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.monitoring.PerformanceMonitor;
-import org.terasology.monitoring.impl.ChunkProcessingMonitor;
-import org.terasology.monitoring.impl.ChunkRequestMonitor;
+import org.terasology.monitoring.SingleThreadMonitor;
+import org.terasology.monitoring.ThreadMonitor;
 import org.terasology.world.lighting.LightPropagator;
 import org.terasology.world.ClassicWorldView;
 import org.terasology.world.chunks.Chunk;
@@ -61,7 +61,7 @@ import com.google.common.collect.Sets;
  */
 public class LocalChunkProvider implements ChunkProvider {
     private static final int CACHE_SIZE = (int) (2 * Runtime.getRuntime().maxMemory() / 1048576);
-    private static final int REQUEST_CHUNK_THREADS = 2;
+    private static final int REQUEST_CHUNK_THREADS = 4;
     private static final int CHUNK_PROCESSING_THREADS = 8;
     
     private final Vector3i LOCAL_REGION_EXTENTS;
@@ -104,7 +104,7 @@ public class LocalChunkProvider implements ChunkProvider {
             reviewThreads.execute(new Runnable() {
                 @Override
                 public void run() {
-                    final ChunkRequestMonitor monitor = new ChunkRequestMonitor(Thread.currentThread());
+                    final SingleThreadMonitor monitor = ThreadMonitor.create("Terasology.Chunks.Requests", "Review", "Produce");
                     try {
                         boolean running = true;
                         Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
@@ -150,7 +150,7 @@ public class LocalChunkProvider implements ChunkProvider {
             chunkProcessingThreads.submit(new Runnable() {
                 @Override
                 public void run() {
-                    final ChunkProcessingMonitor monitor = new ChunkProcessingMonitor(Thread.currentThread());
+                    final SingleThreadMonitor monitor = ThreadMonitor.create("Terasology.Chunks.Processing", "Tasks");
                     try {
                         boolean running = true;
                         Thread.currentThread().setPriority(Thread.MIN_PRIORITY);

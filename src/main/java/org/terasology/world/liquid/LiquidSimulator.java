@@ -32,7 +32,8 @@ import org.terasology.game.CoreRegistry;
 import org.terasology.math.Region3i;
 import org.terasology.math.Side;
 import org.terasology.math.Vector3i;
-import org.terasology.monitoring.impl.LiquidSimulationMonitor;
+import org.terasology.monitoring.SingleThreadMonitor;
+import org.terasology.monitoring.ThreadMonitor;
 import org.terasology.world.BlockChangedEvent;
 import org.terasology.world.WorldProvider;
 import org.terasology.world.ClassicWorldView;
@@ -87,7 +88,7 @@ public class LiquidSimulator implements EventHandlerSystem {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
-                    final LiquidSimulationMonitor monitor = new LiquidSimulationMonitor(Thread.currentThread());
+                    final SingleThreadMonitor monitor = ThreadMonitor.create("Terasology.Simulation.Liquid", "Processed Blocks");
                     try {
                         Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
                         while (true) {

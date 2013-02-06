@@ -21,7 +21,6 @@ import org.lwjgl.LWJGLUtil;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.DisplayMode;
 import org.lwjgl.opengl.GLContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,8 +38,13 @@ import org.terasology.logic.manager.VertexBufferObjectManager;
 import org.terasology.logic.mod.ModManager;
 import org.terasology.logic.mod.ModSecurityManager;
 import org.terasology.monitoring.PerformanceMonitor;
+import org.terasology.monitoring.SingleThreadMonitor;
+import org.terasology.monitoring.ThreadMonitor;
+import org.terasology.monitoring.gui.TerasologyMonitor;
 import org.terasology.physics.CollisionGroupManager;
 import org.terasology.version.TerasologyVersion;
+
+import com.google.common.base.Preconditions;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,10 +58,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.FileHandler;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
@@ -77,7 +84,11 @@ import static org.lwjgl.opengl.GL11.glViewport;
 public class TerasologyEngine implements GameEngine {
 
     private static final Logger logger = LoggerFactory.getLogger(TerasologyEngine.class);
-
+    
+    private static final int ENGINE_THREADS = 4;
+    
+    private final SingleThreadMonitor monitor = ThreadMonitor.create("Engine", "Frames");
+    
     private GameState currentState;
     private boolean initialised;
     private boolean running;
@@ -85,10 +96,11 @@ public class TerasologyEngine implements GameEngine {
     private GameState pendingState;
 
     private Timer timer;
-    private final ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+    private final AtomicInteger activeTasks = new AtomicInteger(0);
+    private final ExecutorService threadPool = Executors.newFixedThreadPool(ENGINE_THREADS);
+    private final BlockingQueue<Runnable> tasksQueue = new LinkedBlockingQueue<Runnable>();
 
-    public TerasologyEngine() {
-    }
+    public TerasologyEngine() {}
 
     @Override
     public void init() {
@@ -101,6 +113,9 @@ public class TerasologyEngine implements GameEngine {
         logger.info(TerasologyVersion.getInstance().toString());
 
         initConfig();
+        initThreads();
+
+        TerasologyMonitor.setMonitorVisible(true);
 
         initNativeLibs();
         initDisplay();
@@ -111,6 +126,7 @@ public class TerasologyEngine implements GameEngine {
         updateInputConfig();
         initTimer(); // Dependent on LWJGL
         initSecurity();
+
         initialised = true;
     }
 
@@ -121,6 +137,39 @@ public class TerasologyEngine implements GameEngine {
         modSecurityManager.addModAvailableClass(GUIManager.class);
         // TODO: Add in mod available classes
 
+    }
+    
+    private void initThreads() {
+        for (int i = 0; i < ENGINE_THREADS; i++) {
+            threadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+                    final SingleThreadMonitor monitor = ThreadMonitor.create("Engine.Tasks", "Tasks");
+                    try {
+                        while (!threadPool.isShutdown()) {
+                            final Runnable task = (Runnable) tasksQueue.poll(500, TimeUnit.MILLISECONDS);
+                            if (task != null)
+                                try {
+                                    activeTasks.incrementAndGet();
+                                    task.run();
+                                } catch (Exception e) {
+                                    monitor.addError(e);
+                                    logger.error("Task error!", e);
+                                } finally {
+                                    monitor.increment(0);
+                                    activeTasks.decrementAndGet();
+                                }
+                        }
+                    } catch (Exception e) {
+                        monitor.addError(e);
+                        logger.error("Thread error!", e);
+                    } finally {
+                        monitor.setActive(false);
+                    }
+                }
+            });
+        }
     }
 
     private void initConfig() {
@@ -278,17 +327,16 @@ public class TerasologyEngine implements GameEngine {
 
     @Override
     public void submitTask(final String name, final Runnable task) {
-        threadPool.execute(new Runnable() {
+        Preconditions.checkNotNull(name, "The parameter 'name' must not be null");
+        Preconditions.checkNotNull(task, "The parameter 'task' must not be null");
+        tasksQueue.add(new Runnable() {
             @Override
             public void run() {
-                Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-                PerformanceMonitor.startThread(name);
+                PerformanceMonitor.startActivity(name);
                 try {
                     task.run();
-                } catch (RejectedExecutionException e) {
-                    logger.error("Thread submitted after shutdown requested: {}", name);
                 } finally {
-                    PerformanceMonitor.endThread(name);
+                    PerformanceMonitor.endActivity();
                 }
             }
         });
@@ -296,7 +344,7 @@ public class TerasologyEngine implements GameEngine {
 
     @Override
     public int getActiveTaskCount() {
-        return threadPool.getActiveCount();
+        return activeTasks.get();
     }
 
     private void initNativeLibs() {
@@ -451,58 +499,67 @@ public class TerasologyEngine implements GameEngine {
 
     private void mainLoop() {
         PerformanceMonitor.startActivity("Other");
-        // MAIN GAME LOOP
-        while (running && !Display.isCloseRequested()) {
+        try {
+            // MAIN GAME LOOP
+            while (running && !Display.isCloseRequested()) {
 
-            // Only process rendering and updating once a second
-            // TODO: Add debug config setting to run even if display inactive
-            if (!Display.isActive()) {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    logger.warn("Display inactivity sleep interrupted", e);
+                monitor.increment(0);
+
+                // Only process rendering and updating once a second
+                // TODO: Add debug config setting to run even if display inactive
+                if (!Display.isActive()) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        logger.warn("Display inactivity sleep interrupted", e);
+                    }
+
+                    Display.processMessages();
+                    continue;
                 }
 
-                Display.processMessages();
-                continue;
+                processStateChanges();
+
+                if (currentState == null) {
+                    shutdown();
+                    break;
+                }
+
+                timer.tick();
+
+                PerformanceMonitor.startActivity("Main Update");
+                currentState.update(timer.getDelta());
+                PerformanceMonitor.endActivity();
+
+                PerformanceMonitor.startActivity("Render");
+                currentState.render();
+                Display.update();
+                Display.sync(60);
+                PerformanceMonitor.endActivity();
+
+                PerformanceMonitor.startActivity("Input");
+                currentState.handleInput(timer.getDelta());
+                PerformanceMonitor.endActivity();
+
+                PerformanceMonitor.startActivity("Audio");
+                AudioManager.getInstance().update();
+                PerformanceMonitor.endActivity();
+
+                PerformanceMonitor.rollCycle();
+                PerformanceMonitor.startActivity("Other");
+
+                if (Display.wasResized()) {
+                    resizeViewport();
+                }
             }
-
-            processStateChanges();
-
-            if (currentState == null) {
-                shutdown();
-                break;
-            }
-
-            timer.tick();
-
-            PerformanceMonitor.startActivity("Main Update");
-            currentState.update(timer.getDelta());
+        } catch (Exception e) {
+            monitor.addError(e);
+            logger.error("Unhandled exception in main loop!", e);
+        } finally {
             PerformanceMonitor.endActivity();
-
-            PerformanceMonitor.startActivity("Render");
-            currentState.render();
-            Display.update();
-            Display.sync(60);
-            PerformanceMonitor.endActivity();
-
-            PerformanceMonitor.startActivity("Input");
-            currentState.handleInput(timer.getDelta());
-            PerformanceMonitor.endActivity();
-
-            PerformanceMonitor.startActivity("Audio");
-            AudioManager.getInstance().update();
-            PerformanceMonitor.endActivity();
-
-            PerformanceMonitor.rollCycle();
-            PerformanceMonitor.startActivity("Other");
-
-            if (Display.wasResized()) {
-                resizeViewport();
-            }
+            monitor.setActive(false);
+            running = false;
         }
-        PerformanceMonitor.endActivity();
-        running = false;
     }
 
     private void processStateChanges() {

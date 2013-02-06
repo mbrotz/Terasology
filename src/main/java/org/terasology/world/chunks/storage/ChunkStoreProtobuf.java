@@ -31,7 +31,8 @@ import java.util.zip.GZIPOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.math.Vector3i;
-import org.terasology.monitoring.impl.ChunkStoreMonitor;
+import org.terasology.monitoring.SingleThreadMonitor;
+import org.terasology.monitoring.ThreadMonitor;
 import org.terasology.protobuf.ChunksProtobuf;
 import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.Chunks;
@@ -71,7 +72,7 @@ public class ChunkStoreProtobuf implements ChunkStore, Serializable {
                 compressionThreads.execute(new Runnable() {
                     @Override
                     public void run() {
-                        final ChunkStoreMonitor monitor = new ChunkStoreMonitor("Protobuf", Thread.currentThread());
+                        final SingleThreadMonitor monitor = ThreadMonitor.create("Terasology.Chunks.Storage", "Saved");
                         try {
                             Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
                             while (running.get()) {

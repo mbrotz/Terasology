@@ -32,7 +32,8 @@ import org.terasology.entitySystem.RegisterComponentSystem;
 import org.terasology.game.CoreRegistry;
 import org.terasology.math.Side;
 import org.terasology.math.Vector3i;
-import org.terasology.monitoring.impl.GrowthSimulationMonitor;
+import org.terasology.monitoring.SingleThreadMonitor;
+import org.terasology.monitoring.ThreadMonitor;
 import org.terasology.world.BlockChangedEvent;
 import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.WorldProvider;
@@ -72,7 +73,7 @@ public class GrowthSimulator implements EventHandlerSystem {
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                final GrowthSimulationMonitor monitor = new GrowthSimulationMonitor(Thread.currentThread());
+                final SingleThreadMonitor monitor = ThreadMonitor.create("Terasology.Simulation.Growth", "Processed Blocks");
                 Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
                 try {
                     while (running.get()) {
