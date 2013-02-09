@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+uniform bool swimming;
+uniform float viewingDistance;
+uniform float daylight;
+uniform float tick;
+uniform float time;
+
 float timeToTick(float time, float speed) {
     return time * 4000.0 * speed;
 }
@@ -28,4 +34,8 @@ float triangleWave( float x ) {
 }
 float smoothTriangleWave( float x ) {
   return smoothCurve( triangleWave( x ) ) * 2.0 - 1.0 ;
+}
+
+bool checkFlag (int flag, float val) {
+    return val > float(flag) - 0.5 && val < float(flag) + 0.5;
 }

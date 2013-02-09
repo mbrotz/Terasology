@@ -91,25 +91,46 @@ public class UIMenuConfigVideo extends UIWindow {
                 UIStateButton button = (UIStateButton)element;
                 switch (button.getState()) {
                 case 0:
-                    Config.getInstance().setEnablePostProcessingEffects(false);
                     Config.getInstance().setFlickeringLight(false);
+                    Config.getInstance().setVignette(true);
+                    Config.getInstance().setEyeAdaption(false);
+                    Config.getInstance().setBloom(false);
+                    Config.getInstance().setMotionBlur(false);
+                    Config.getInstance().setSSAO(false);
+                    Config.getInstance().setFilmGrain(false);
+                    Config.getInstance().setOutline(true);
+                    Config.getInstance().setLightShafts(false);
                     break;
                 case 1:
-                    Config.getInstance().setEnablePostProcessingEffects(false);
                     Config.getInstance().setFlickeringLight(true);
+                    Config.getInstance().setVignette(true);
+                    Config.getInstance().setEyeAdaption(true);
+                    Config.getInstance().setBloom(true);
+                    Config.getInstance().setMotionBlur(false);
+                    Config.getInstance().setSSAO(false);
+                    Config.getInstance().setFilmGrain(true);
+                    Config.getInstance().setOutline(true);
+                    Config.getInstance().setLightShafts(false);
                     break;
                 case 2:
-                    Config.getInstance().setEnablePostProcessingEffects(true);
                     Config.getInstance().setFlickeringLight(true);
+                    Config.getInstance().setVignette(true);
+                    Config.getInstance().setEyeAdaption(true);
+                    Config.getInstance().setBloom(true);
+                    Config.getInstance().setMotionBlur(true);
+                    Config.getInstance().setSSAO(true);
+                    Config.getInstance().setFilmGrain(true);
+                    Config.getInstance().setOutline(true);
+                    Config.getInstance().setLightShafts(true);
                     break;
                 }
                 
                 ShaderManager.getInstance().recompileAllShaders();
             }
         };
-        graphicsQualityButton.addState("Graphics Quality: Ugly", graphicsQualityStateAction);
         graphicsQualityButton.addState("Graphics Quality: Nice", graphicsQualityStateAction);
         graphicsQualityButton.addState("Graphics Quality: Epic", graphicsQualityStateAction);
+        graphicsQualityButton.addState("Graphics Quality: Insane", graphicsQualityStateAction);
         graphicsQualityButton.addClickListener(clickAction);
         graphicsQualityButton.setHorizontalAlign(EHorizontalAlign.CENTER);
         graphicsQualityButton.setPosition(new Vector2f(-graphicsQualityButton.getSize().x / 2f - 10f, 300f));
@@ -274,9 +295,9 @@ public class UIMenuConfigVideo extends UIWindow {
         viewingDistanceButton.setState(Config.getInstance().getActiveViewingDistanceId());
         blurIntensityButton.setState(Config.getInstance().getBlurIntensity());
         
-        if (Config.getInstance().isEnablePostProcessingEffects() && Config.getInstance().isFlickeringLight())
+        if (Config.getInstance().isMotionBlur())
             graphicsQualityButton.setState(2);
-        else if (!Config.getInstance().isEnablePostProcessingEffects() && Config.getInstance().isFlickeringLight())
+        else if (Config.getInstance().isBloom())
             graphicsQualityButton.setState(1);
         else
             graphicsQualityButton.setState(0);

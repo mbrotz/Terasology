@@ -46,6 +46,8 @@ import org.terasology.version.TerasologyVersion;
 
 import com.google.common.base.Preconditions;
 
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -100,7 +102,12 @@ public class TerasologyEngine implements GameEngine {
     private final ExecutorService threadPool = Executors.newFixedThreadPool(ENGINE_THREADS);
     private final BlockingQueue<Runnable> tasksQueue = new LinkedBlockingQueue<Runnable>();
 
-    public TerasologyEngine() {}
+    private Canvas customViewPort = null;
+    private static boolean editorInFocus = false;
+    private static boolean editorAttached = false;
+
+    public TerasologyEngine() {
+    }
 
     @Override
     public void init() {
@@ -265,7 +272,7 @@ public class TerasologyEngine implements GameEngine {
                         } catch (Exception ex) {
                         }
                     }
-                    return String.format("[%s] (%s)\t%s - %s\n%s", record.getLevel().getLocalizedName(), dateFormat.format(new Date(record.getMillis())), record.getLoggerName(), record.getSourceMethodName(), formatMessage(record), thrownMessage);
+                    return String.format("[%s] (%s)\t%s:%s() - %s\n%s", record.getLevel().getLocalizedName(), dateFormat.format(new Date(record.getMillis())), record.getLoggerName(), record.getSourceMethodName(), formatMessage(record), thrownMessage);
                 }
             });
             java.util.logging.Logger.getLogger("").addHandler(fh);
@@ -410,6 +417,7 @@ public class TerasologyEngine implements GameEngine {
     private void initDisplay() {
         try {
             setDisplayMode();
+            Display.setParent(customViewPort);
             Display.setTitle("Terasology" + " | " + "Pre Alpha");
             Display.create(Config.getInstance().getPixelFormat());
         } catch (LWJGLException e) {
@@ -425,17 +433,25 @@ public class TerasologyEngine implements GameEngine {
     }
 
     private void checkOpenGL() {
-        boolean canRunGame = GLContext.getCapabilities().OpenGL20
-                & GLContext.getCapabilities().OpenGL11
-                & GLContext.getCapabilities().OpenGL12
-                & GLContext.getCapabilities().OpenGL14
-                & GLContext.getCapabilities().OpenGL15;
+        boolean canRunGame =
+                GLContext.getCapabilities().OpenGL20
+                && GLContext.getCapabilities().OpenGL11
+                && GLContext.getCapabilities().OpenGL12
+                && GLContext.getCapabilities().OpenGL14
+                && GLContext.getCapabilities().OpenGL15
+                && GLContext.getCapabilities().GL_ARB_framebuffer_object
+                && GLContext.getCapabilities().GL_ARB_texture_float
+                && GLContext.getCapabilities().GL_ARB_half_float_pixel
+                && GLContext.getCapabilities().GL_ARB_shader_objects;
 
         if (!canRunGame) {
-            logger.error("Your GPU driver is not supporting the mandatory versions of OpenGL. Considered updating your GPU drivers?");
+            final String message = "Your GPU driver is not supporting the mandatory versions of OpenGL or some needed OpenGL extension. Considered updating your GPU drivers? Exiting...";
+
+            logger.error(message);
+            JOptionPane.showMessageDialog(null, message, "Mandatory OpenGL version(s) not supported", JOptionPane.ERROR_MESSAGE);
+
             System.exit(1);
         }
-
     }
 
     private void resizeViewport() {
@@ -454,7 +470,9 @@ public class TerasologyEngine implements GameEngine {
             Keyboard.create();
             Keyboard.enableRepeatEvents(true);
             Mouse.create();
-            Mouse.setGrabbed(true);
+            if (!TerasologyEngine.isEditorInFocus()) {
+                Mouse.setGrabbed(true);
+            }
         } catch (LWJGLException e) {
             logger.error("Could not initialize controls.", e);
             System.exit(1);
@@ -513,9 +531,6 @@ public class TerasologyEngine implements GameEngine {
                     } catch (InterruptedException e) {
                         logger.warn("Display inactivity sleep interrupted", e);
                     }
-
-                    Display.processMessages();
-                    continue;
                 }
 
                 processStateChanges();
@@ -599,5 +614,25 @@ public class TerasologyEngine implements GameEngine {
             resizeViewport();
             CoreRegistry.get(GUIManager.class).update(true);
         }
+    }
+
+    public void setCustomViewPort(Canvas viewPort) {
+        customViewPort = viewPort;
+    }
+
+    public static void setEditorInFocus(boolean focus) {
+        editorInFocus = focus;
+    }
+
+    public static boolean isEditorInFocus() {
+        return editorInFocus;
+    }
+
+    public static void setEditorAttached(boolean attached) {
+        editorAttached = attached;
+    }
+
+    public static boolean isEditorAttached() {
+        return editorAttached;
     }
 }

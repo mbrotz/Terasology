@@ -24,6 +24,7 @@ uniform vec3 colorOffset = vec3(1.0, 1.0, 1.0);
 
 uniform bool carryingTorch = false;
 
+varying vec3 normal;
 varying vec4 vertexWorldPos;
 
 void main(){
@@ -32,13 +33,13 @@ void main(){
     float torchlight = 0.0;
 
     // Apply torchlight
-    if (carryingTorch)
+    if (carryingTorch) {
         torchlight = calcTorchlight(1.0, vertexWorldPos.xyz);
+    }
 
     color.rgb *= colorOffset.rgb;
+    color.rgb *= clamp(light + torchlight, 0.0, 1.0);
 
-    float lightValue = expLightValue(light);
-    color.rgb *= clamp(lightValue + torchlight, 0.0, 1.0);
-
-    gl_FragColor = color;
+    gl_FragData[0].rgba = color;
+    gl_FragData[1].rgba = vec4(normal.x / 2.0 + 0.5, normal.y / 2.0 + 0.5, normal.z / 2.0 + 0.5, 0.0f);
 }

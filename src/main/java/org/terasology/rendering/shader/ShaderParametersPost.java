@@ -19,80 +19,88 @@ import static org.lwjgl.opengl.GL11.glBindTexture;
 
 import javax.vecmath.Vector3f;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.terasology.asset.Assets;
+import org.terasology.editor.properties.Property;
 import org.terasology.game.CoreRegistry;
-import org.terasology.logic.LocalPlayer;
 import org.terasology.logic.manager.Config;
 import org.terasology.logic.manager.PostProcessingRenderer;
-import org.terasology.math.TeraMath;
 import org.terasology.rendering.assets.Texture;
+import org.terasology.rendering.cameras.Camera;
 import org.terasology.rendering.world.WorldRenderer;
-import org.terasology.world.WorldProvider;
-import org.terasology.world.block.Block;
+import org.terasology.utilities.FastRandom;
+
+import java.nio.FloatBuffer;
+import java.util.List;
 
 /**
  * Shader parameters for the Post-processing shader program.
  *
  * @author Benjamin Glatzel <benjamin.glatzel@me.com>
  */
-public class ShaderParametersPost implements IShaderParameters {
+public class ShaderParametersPost extends ShaderParametersBase {
 
-    Texture texture = Assets.getTexture("engine:vignette");
+    FastRandom rand = new FastRandom();
+
+    Texture vignetteTexture = Assets.getTexture("engine:vignette");
+    Texture noiseTexture = Assets.getTexture("engine:noise");
+
+    Property filmGrainIntensity = new Property("filmGrainIntensity", 0.1f, 0.0f, 1.0f);
 
     @Override
     public void applyParameters(ShaderProgram program) {
+        super.applyParameters(program);
+
         PostProcessingRenderer.FBO scene = PostProcessingRenderer.getInstance().getFBO("scene");
+
+
+        GL13.glActiveTexture(GL13.GL_TEXTURE0);
+        PostProcessingRenderer.getInstance().getFBO("sceneTonemapped").bindTexture();
+        program.setInt("texScene", 0);
 
         GL13.glActiveTexture(GL13.GL_TEXTURE1);
         PostProcessingRenderer.getInstance().getFBO("sceneBloom1").bindTexture();
-        if (Config.getInstance().getBlurIntensity() != 0) {
+        program.setInt("texBloom", 1);
+
+        if (Config.getInstance().getBlurIntensity() != 0 || Config.getInstance().isMotionBlur()) {
             GL13.glActiveTexture(GL13.GL_TEXTURE2);
             PostProcessingRenderer.getInstance().getFBO("sceneBlur1").bindTexture();
-        }
-        GL13.glActiveTexture(GL13.GL_TEXTURE3);
-        glBindTexture(GL11.GL_TEXTURE_2D, texture.getId());
-        GL13.glActiveTexture(GL13.GL_TEXTURE4);
-        scene.bindDepthTexture();
-        GL13.glActiveTexture(GL13.GL_TEXTURE0);
-        PostProcessingRenderer.getInstance().getFBO("sceneTonemapped").bindTexture();
-
-        program.setInt("texScene", 0);
-        program.setInt("texBloom", 1);
-        if (Config.getInstance().getBlurIntensity() != 0) {
             program.setInt("texBlur", 2);
         }
+
+        GL13.glActiveTexture(GL13.GL_TEXTURE3);
+        glBindTexture(GL11.GL_TEXTURE_2D, vignetteTexture.getId());
         program.setInt("texVignette", 3);
+
+        GL13.glActiveTexture(GL13.GL_TEXTURE4);
+        scene.bindDepthTexture();
         program.setInt("texDepth", 4);
 
-        program.setFloat("viewingDistance", Config.getInstance().getActiveViewingDistance() * 8.0f);
+        if (Config.getInstance().isFilmGrain()) {
+            GL13.glActiveTexture(GL13.GL_TEXTURE5);
+            glBindTexture(GL11.GL_TEXTURE_2D, noiseTexture.getId());
+            program.setInt("texNoise", 5);
+            program.setFloat("grainIntensity", (Float) filmGrainIntensity.getValue());
+            program.setFloat("noiseOffset", rand.randomPosFloat());
 
-//        WorldRenderer renderer = CoreRegistry.get(WorldRenderer.class);
-//        float timeInDays = renderer.getWorldProvider().getTimeInDays();
-//
-//        // Calculate the fog value based on the daylight value
-//        float fogLinearIntensity = 0.01f;
-//        float daylight = (float) CoreRegistry.get(WorldRenderer.class).getDaylight();
-//
-//        if (daylight < 1.0 && daylight > 0.25) {
-//            float daylightFactor = (1.0f - daylight) / 0.75f;
-//            fogLinearIntensity += 0.5f * daylightFactor;
-//        } else if (daylight <= 0.25f) {
-//            float daylightFactor = (0.25f - daylight) / 0.25f;
-//            fogLinearIntensity += TeraMath.lerpf(0.5f, 0.0f, daylightFactor);
-//        }
-//
-//        float fogIntensity = renderer.getWorldProvider().getBiomeProvider().getFog(timeInDays) * 0.25f * daylight;
-//
-//        program.setFloat("fogIntensity", fogIntensity);
-//        program.setFloat("fogLinearIntensity", fogLinearIntensity);
+            FloatBuffer rtSize = BufferUtils.createFloatBuffer(2);
+            rtSize.put((float) scene._width).put((float) scene._height);
+            rtSize.flip();
 
-        if (CoreRegistry.get(LocalPlayer.class).isValid()) {
-            Vector3f cameraPos = CoreRegistry.get(WorldRenderer.class).getActiveCamera().getPosition();
-            Block block = CoreRegistry.get(WorldProvider.class).getBlock(cameraPos);
-            program.setInt("swimming", block.isLiquid() ? 1 : 0);
+            program.setFloat2("renderTargetSize", rtSize);
+        }
+
+        Camera activeCamera = CoreRegistry.get(WorldRenderer.class).getActiveCamera();
+        if (activeCamera != null && Config.getInstance().isMotionBlur()) {
+            program.setMatrix4("invViewProjMatrix", activeCamera.getInverseViewProjectionMatrix());
+            program.setMatrix4("prevViewProjMatrix", activeCamera.getPrevViewProjectionMatrix());
         }
     }
 
+    @Override
+    public void addPropertiesToList(List<Property> properties) {
+        properties.add(filmGrainIntensity);
+    }
 }

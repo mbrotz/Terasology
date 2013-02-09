@@ -598,7 +598,8 @@ public final class WorldRenderer {
         glCullFace(GL11.GL_BACK);
         PostProcessingRenderer.getInstance().endRenderReflectedScene();
 
-        PostProcessingRenderer.getInstance().beginRenderScene();
+
+        PostProcessingRenderer.getInstance().beginRenderScene(true);
         renderWorld(getActiveCamera());
         PostProcessingRenderer.getInstance().endRenderScene();
 
@@ -611,12 +612,17 @@ public final class WorldRenderer {
             glClear(GL_DEPTH_BUFFER_BIT);
             glPushMatrix();
             glLoadIdentity();
-            _activeCamera.loadProjectionMatrix(90f);
+
+            _activeCamera.updateMatrices(90f);
+            _activeCamera.loadProjectionMatrix();
 
             PerformanceMonitor.startActivity("Render First Person");
             for (RenderSystem renderer : _systemManager.iterateRenderSubscribers()) {
                 renderer.renderFirstPerson();
             }
+
+            _activeCamera.updateMatrices();
+
             PerformanceMonitor.endActivity();
 
             glPopMatrix();
@@ -624,6 +630,7 @@ public final class WorldRenderer {
     }
 
     public void renderWorld(Camera camera) {
+
         /* SKYSPHERE */
         PerformanceMonitor.startActivity("Render Sky");
         camera.lookThroughNormalized();
@@ -675,14 +682,6 @@ public final class WorldRenderer {
 
         PerformanceMonitor.endActivity();
 
-        PerformanceMonitor.startActivity("Render Objects (Transparent)");
-
-        for (RenderSystem renderer : _systemManager.iterateRenderSubscribers()) {
-            renderer.renderTransparent();
-        }
-
-        PerformanceMonitor.endActivity();
-
         PerformanceMonitor.startActivity("Render Chunks (Water, Ice)");
 
         // Make sure the water surface is rendered if the player is swimming
@@ -706,6 +705,14 @@ public final class WorldRenderer {
                     renderChunk(c, ChunkMesh.RENDER_PHASE.WATER_AND_ICE, camera);
                 }
             }
+        }
+
+        PerformanceMonitor.endActivity();
+
+        PerformanceMonitor.startActivity("Render Objects (Transparent)");
+
+        for (RenderSystem renderer : _systemManager.iterateRenderSubscribers()) {
+            renderer.renderTransparent();
         }
 
         PerformanceMonitor.endActivity();

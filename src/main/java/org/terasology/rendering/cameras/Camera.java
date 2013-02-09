@@ -18,9 +18,11 @@ package org.terasology.rendering.cameras;
 import static org.lwjgl.opengl.GL11.glScalef;
 import static org.lwjgl.opengl.GL11.glTranslatef;
 
+import javax.vecmath.Matrix4f;
 import javax.vecmath.Vector3f;
 
 import org.terasology.logic.manager.Config;
+import org.terasology.math.TeraMath;
 import org.terasology.model.structures.ViewFrustum;
 
 /**
@@ -41,6 +43,15 @@ public abstract class Camera {
     /* VIEW FRUSTUM */
     protected final ViewFrustum _viewFrustum = new ViewFrustum();
 
+    /* MATRICES */
+    protected Matrix4f _projectionMatrix = new Matrix4f();
+    protected Matrix4f _normViewMatrix = new Matrix4f();
+    protected Matrix4f _viewMatrix = new Matrix4f();
+    protected Matrix4f _viewProjectionMatrix = new Matrix4f();
+    protected Matrix4f _inverseViewProjectionMatrix = new Matrix4f();
+    protected Matrix4f _prevViewProjectionMatrix = new Matrix4f();
+
+    /* ETC */
     protected boolean _reflected = false;
 
     /**
@@ -69,15 +80,15 @@ public abstract class Camera {
         }
     }
 
-    public abstract void loadProjectionMatrix(float fov);
-
-    public void loadProjectionMatrix() {
-        loadProjectionMatrix(_activeFov);
-    }
+    public abstract void loadProjectionMatrix();
 
     public abstract void loadModelViewMatrix();
 
     public abstract void loadNormalizedModelViewMatrix();
+
+    public abstract void updateMatrices();
+
+    public abstract void updateMatrices(float overrideFov);
 
     public Vector3f getPosition() {
         return _position;
@@ -130,5 +141,25 @@ public abstract class Camera {
         if (_reflected)
             return 31.5f;
         return 0;
+    }
+
+    public Matrix4f getViewMatrix() {
+        return _viewMatrix;
+    }
+
+    public Matrix4f getProjectionMatrix() {
+        return _projectionMatrix;
+    }
+
+    public Matrix4f getViewProjectionMatrix() {
+        return _viewProjectionMatrix;
+    }
+
+    public Matrix4f getInverseViewProjectionMatrix() {
+        return _inverseViewProjectionMatrix;
+    }
+
+    public Matrix4f getPrevViewProjectionMatrix() {
+        return _prevViewProjectionMatrix;
     }
 }

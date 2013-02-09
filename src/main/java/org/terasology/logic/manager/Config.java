@@ -238,25 +238,6 @@ public final class Config {
         _setting.getSystemBuilder().setMaxParticles(maxParticles);
     }
 
-    public Vector2f getCloudResolution() {
-        float x = _setting.getSystemBuilder().getCloudResolutionBuilder().getX();
-        float y = _setting.getSystemBuilder().getCloudResolutionBuilder().getY();
-        return new Vector2f(x, y);
-    }
-
-    public void setCloudResolution(Vector2f cloudResolution) {
-        _setting.getSystemBuilder().getCloudResolutionBuilder().setX(cloudResolution.x);
-        _setting.getSystemBuilder().getCloudResolutionBuilder().setX(cloudResolution.y);
-    }
-
-    public int getCloudUpdateInterval() {
-        return _setting.getSystemBuilder().getCloudUpdateInterval();
-    }
-
-    public void setCloudUpdateInterval(int cloudUpdateInterval) {
-        _setting.getSystemBuilder().setCloudUpdateInterval(cloudUpdateInterval);
-    }
-
     public int getMaxThreads() {
         return _setting.getSystemBuilder().getMaxThreads();
     }
@@ -287,14 +268,6 @@ public final class Config {
 
     public void setMaxChunkVBOs(int maxChunkVBOs) {
         _setting.getSystemBuilder().setMaxChunkVBOs(maxChunkVBOs);
-    }
-
-    public double getGamma() {
-        return _setting.getSystemBuilder().getGamma();
-    }
-
-    public void setGamma(float gamma) {
-        _setting.getSystemBuilder().setGamma(gamma);
     }
 
     public PixelFormat getPixelFormat() {
@@ -363,14 +336,6 @@ public final class Config {
 
     public void setFlickeringLight(boolean flickeringLight) {
         _setting.getSystemBuilder().setFlickeringLight(flickeringLight);
-    }
-
-    public boolean isEnablePostProcessingEffects() {
-        return _setting.getSystemBuilder().getEnablePostProcessingEffects();
-    }
-
-    public void setEnablePostProcessingEffects(boolean enablePostProcessingEffects) {
-        _setting.getSystemBuilder().setEnablePostProcessingEffects(enablePostProcessingEffects);
     }
 
     public boolean isAnimatedGrass() {
@@ -457,6 +422,70 @@ public final class Config {
         _setting.getSystemBuilder().setSoundVolume(volume);
     }
 
+    public void setVignette(boolean vignette) {
+        _setting.getSystemBuilder().setVignette(vignette);
+    }
+
+    public boolean isVignette() {
+        return _setting.getSystemBuilder().getVignette();
+    }
+
+    public void setMotionBlur(boolean motionBlur) {
+        _setting.getSystemBuilder().setMotionBlur(motionBlur);
+    }
+
+    public boolean isMotionBlur() {
+        return _setting.getSystemBuilder().getMotionBlur();
+    }
+
+    public void setSSAO(boolean ssao) {
+        _setting.getSystemBuilder().setSsao(ssao);
+    }
+
+    public boolean isSSAO() {
+        return _setting.getSystemBuilder().getSsao();
+    }
+
+    public void setLightShafts(boolean lightShafts) {
+        _setting.getSystemBuilder().setLightShafts(lightShafts);
+    }
+
+    public boolean isLightShafts() {
+        return _setting.getSystemBuilder().getLightShafts();
+    }
+
+    public void setOutline(boolean outline) {
+        _setting.getSystemBuilder().setOutline(outline);
+    }
+
+    public boolean isOutline() {
+        return _setting.getSystemBuilder().getOutline();
+    }
+
+    public void setFilmGrain(boolean filmGrain) {
+        _setting.getSystemBuilder().setFilmGrain(filmGrain);
+    }
+
+    public boolean isFilmGrain() {
+        return _setting.getSystemBuilder().getFilmGrain();
+    }
+
+    public void setEyeAdaption(boolean eyeAdaption) {
+        _setting.getSystemBuilder().setEyeAdapation(eyeAdaption);
+    }
+
+    public boolean isEyeAdaption() {
+        return _setting.getSystemBuilder().getEyeAdapation();
+    }
+
+    public void setBloom(boolean bloom) {
+        _setting.getSystemBuilder().setBloom(bloom);
+    }
+
+    public boolean isBloom() {
+        return _setting.getSystemBuilder().getBloom();
+    }
+
     /* MODS */
     public List<String> getActiveMods() {
         return _setting.getActiveModList();
@@ -487,6 +516,9 @@ public final class Config {
         _setting.getSystemBuilder().setActiveViewingDistanceId(viewingDistance);
 
         WorldRenderer worldRenderer = CoreRegistry.get(WorldRenderer.class);
+
+        int chunksToLoad = getActiveViewingDistance() * getActiveViewingDistance();
+        setMaxChunkVBOs(chunksToLoad >= 512 ? 512 : chunksToLoad);
 
         // Make sure to update the chunks "around" the player
         if (worldRenderer != null)

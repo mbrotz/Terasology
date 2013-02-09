@@ -12,36 +12,11 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+*/
 
-uniform sampler2D textureAtlas;
-uniform sampler2D textureWaterNormal;
-uniform sampler2D textureLava;
-uniform sampler2D textureEffects;
-uniform sampler2D textureWaterReflection;
-
-uniform float time;
-uniform float daylight = 1.0;
-uniform bool carryingTorch;
-uniform bool swimming;
-
-uniform float clipHeight = 0.0;
-
-varying vec4 vertexWorldPosRaw;
-varying vec4 vertexWorldPos;
-varying vec4 vertexPos;
-varying vec3 lightDir;
-varying vec3 normal;
-varying vec3 waterNormal;
-varying float isUpside;
-
-varying float flickering;
-varying float flickeringAlternative;
-
-uniform vec3 chunkOffset;
-uniform vec2 waterCoordinate;
-uniform vec2 lavaCoordinate;
-uniform vec2 grassCoordinate;
+#define BLOCK_HINT_WATER     1
+#define BLOCK_HINT_LAVA      2
+#define BLOCK_HINT_GRASS     3
 
 #define DAYLIGHT_AMBIENT_COLOR 0.95, 0.92, 0.91
 #define MOONLIGHT_AMBIENT_COLOR 0.8, 0.8, 1.0
@@ -61,12 +36,41 @@ uniform vec2 grassCoordinate;
 
 #define WATER_REFRACTION 0.1
 
+uniform sampler2D textureAtlas;
+uniform sampler2D textureWaterNormal;
+uniform sampler2D textureLava;
+uniform sampler2D textureEffects;
+uniform sampler2D textureWaterReflection;
+
+uniform float clipHeight = 0.0;
+
+uniform bool carryingTorch;
+
+varying vec4 vertexWorldPosRaw;
+varying vec4 vertexWorldPos;
+varying vec4 vertexPos;
+varying vec3 lightDir;
+varying vec3 normal;
+varying vec3 waterNormal;
+
+varying float flickeringLightOffset;
+varying float blockHint;
+varying float isUpside;
+
+varying float distance;
+
+uniform vec3 skyInscatteringColor;
+uniform float skyInscatteringExponent;
+
+uniform float skyInscatteringStrength;
+uniform float skyInscatteringLength;
+
 void main(){
 	if (clipHeight > 0.0 && vertexWorldPosRaw.y < clipHeight && !swimming) {
         discard;
 	}
 
-    vec4 texCoord = gl_TexCoord[0];
+    vec2 texCoord = gl_TexCoord[0].xy;
 
     vec3 normalizedVPos = -normalize(vertexWorldPos.xyz);
     vec3 normalWater;
@@ -75,35 +79,40 @@ void main(){
     vec3 finalLightDir = lightDir;
 
     /* DAYLIGHT BECOMES... MOONLIGHT! */
-    /* Now featuring linear interpolation to make the transition smoother... :-) */
+    // Now featuring linear interpolation to make the transition smoother... :-)
     if (daylight < 0.1)
         finalLightDir = mix(finalLightDir * -1.0, finalLightDir, daylight / 0.1);
 
-    vec4 color;
+    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
 
-    /* APPLY WATER TEXTURE */
-    if (texCoord.x >= waterCoordinate.x && texCoord.x < waterCoordinate.x + TEXTURE_OFFSET && texCoord.y >= waterCoordinate.y && texCoord.y < waterCoordinate.y + TEXTURE_OFFSET) {
-        vec2 waterOffset = vec2(vertexWorldPosRaw.x + timeToTick(time, 0.1), vertexWorldPosRaw.z + timeToTick(time, 0.1)) / 8.0;
+    /* WATER */
+    if ( checkFlag(BLOCK_HINT_WATER, blockHint) ) {
+        vec2 waterOffset = vec2(vertexWorldPosRaw.x + timeToTick(time, 0.05), vertexWorldPosRaw.z + timeToTick(time, 0.1)) / 8.0;
+        vec2 waterOffset2 = vec2(vertexWorldPosRaw.x - timeToTick(time, 0.1), vertexWorldPosRaw.z + timeToTick(time, 0.05)) / 8.0;
         normalWater.xyz = texture2D(textureWaterNormal, waterOffset).xyz * 2.0 - 1.0;
+        normalWater.xyz += texture2D(textureWaterNormal, waterOffset2).xyz * 2.0 - 1.0;
+        normalWater.xyz /= 2.0;
 
        // Enable reflection only when not swimming and for blocks on sea level
-        if (!swimming && isUpside > 0.99 && vertexWorldPosRaw.y < 32.5 && vertexWorldPosRaw.y > 31.5) {
-            vec2 projectedPos = 0.5 * (vertexPos.st/vertexPos.q) + vec2(0.5);
+        if (!swimming && isUpside > 0.99) {
+            if ( vertexWorldPosRaw.y < 32.5 && vertexWorldPosRaw.y > 31.5) {
+                vec2 projectedPos = 0.5 * (vertexPos.st/vertexPos.q) + vec2(0.5);
 
-            // Fresnel
-            float refractionFactor = WATER_REFRACTION * clamp(1.0 - length(vertexWorldPos.xyz) / 50.0, 0.25, 1.0);
-            vec4 reflectionColor = vec4(texture2D(textureWaterReflection, projectedPos + normalWater.xy * refractionFactor).xyz, 1.0);
-            float f = fresnel(max(dot(normalizedVPos, waterNormal), 0.0), 0.1, 5.0);
-            color = mix(reflectionColor * vec4(WATER_COLOR), reflectionColor * vec4(REFLECTION_COLOR), f);
-        } else if (!swimming && (vertexWorldPosRaw.y >= 32.5 || vertexWorldPosRaw.y <= 31.5)) {
-            color = vec4(WATER_COLOR);
+                /* FRESNEL */
+                float refractionFactor = WATER_REFRACTION * clamp(1.0 - length(vertexWorldPos.xyz) / 50.0, 0.25, 1.0);
+                vec4 reflectionColor = vec4(texture2D(textureWaterReflection, projectedPos + normalWater.xy * refractionFactor).xyz, 1.0);
+                float f = fresnel(max(dot(normalizedVPos, waterNormal), 0.0), 0.1, 5.0);
+                color = mix(reflectionColor * vec4(WATER_COLOR), reflectionColor * vec4(REFLECTION_COLOR), f);
+            } else {
+                color = vec4(WATER_COLOR);
+            }
         } else {
             color = vec4(WATER_COLOR_SWIMMING);
         }
 
         isWater = true;
-    /* APPLY LAVA TEXTURE */
-    } else if (texCoord.x >= lavaCoordinate.x && texCoord.x < lavaCoordinate.x + TEXTURE_OFFSET && texCoord.y >= lavaCoordinate.y && texCoord.y < lavaCoordinate.y + TEXTURE_OFFSET) {
+    /* LAVA */
+    } else if ( checkFlag(BLOCK_HINT_LAVA, blockHint) ) {
         texCoord.x = mod(texCoord.x, TEXTURE_OFFSET) * (1.0 / TEXTURE_OFFSET);
         texCoord.y = mod(texCoord.y, TEXTURE_OFFSET) / (128.0 / (1.0 / TEXTURE_OFFSET));
         texCoord.y += mod(timeToTick(time, 0.1), 127.0) * (1.0/128.0);
@@ -112,13 +121,14 @@ void main(){
     /* APPLY DEFAULT TEXTURE FROM ATLAS */
     } else {
         color = texture2D(textureAtlas, texCoord.xy);
+
+        if (color.a < 0.1) {
+            discard;
+        }
     }
 
-    if (color.a < 0.5)
-        discard;
-
     /* APPLY OVERALL BIOME COLOR OFFSET */
-    if (!(texCoord.x >= grassCoordinate.x && texCoord.x < grassCoordinate.x + TEXTURE_OFFSET && texCoord.y >= grassCoordinate.y && texCoord.y < grassCoordinate.y + TEXTURE_OFFSET)) {
+    if ( !checkFlag(BLOCK_HINT_GRASS, blockHint) ) {
         if (gl_Color.r < 0.99 && gl_Color.g < 0.99 && gl_Color.b < 0.99) {
             if (color.g > 0.5) {
                 color.rgb = vec3(color.g) * gl_Color.rgb;
@@ -185,18 +195,23 @@ void main(){
     daylightColorValue.xyz *= daylightScaledValue + (NIGHT_BRIGHTNESS * (1.0 - daylight) * expLightValue(daylightValue));
 
     // Calculate the final block light brightness
-    float blockBrightness = (expLightValue(blocklightValue) + diffuseLighting * blocklightValue * BLOCK_DIFF);
+    float blockBrightness = expLightValue(blocklightValue);
 
-    torchlight -= flickeringAlternative * torchlight;
+    torchlight -= flickeringLightOffset * torchlight;
 
     blockBrightness += (1.0 - blockBrightness) * torchlight;
-    blockBrightness -= flickering * blocklightValue;
-    blockBrightness *= blocklightDayIntensity;
+    blockBrightness -= flickeringLightOffset * blocklightValue;
 
     // Calculate the final blocklight color value and add a slight reddish tint to it
     vec3 blocklightColorValue = vec3(blockBrightness) * vec3(1.0, 0.95, 0.94);
 
     // Apply the final lighting mix
-    color.xyz *= (daylightColorValue + blocklightColorValue) * occlusionValue;
-    gl_FragColor = color;
+    color.xyz *= max(daylightColorValue, blocklightColorValue) * occlusionValue;
+
+    vec3 finalInscatteringColor = convertColorYxy(skyInscatteringColor, skyInscatteringExponent);
+    float fogValue = skyInscatteringStrength - clamp((viewingDistance - distance) / (viewingDistance - (1.0 - skyInscatteringLength) * viewingDistance), 0.0, skyInscatteringStrength);
+    color = mix(color, vec4(finalInscatteringColor, 1.0), fogValue);
+
+    gl_FragData[0].rgba = color;
+    gl_FragData[1].rgba = vec4(normal.x / 2.0 + 0.5, normal.y / 2.0 + 0.5, normal.z / 2.0 + 0.5, 0.0f);
 }

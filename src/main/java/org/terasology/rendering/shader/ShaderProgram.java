@@ -19,19 +19,21 @@ import static org.lwjgl.opengl.GL11.glBindTexture;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
 
-import org.lwjgl.BufferUtils;
-import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.ARBShaderObjects;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL20;
 import org.newdawn.slick.util.ResourceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.logic.manager.ShaderManager;
+import org.terasology.math.TeraMath;
 import org.terasology.rendering.assets.Shader;
+
+import javax.swing.*;
+import javax.vecmath.Matrix3f;
+import javax.vecmath.Matrix4f;
 
 /**
  * Wraps a OpenGL shader program. Provides convenience methods for setting
@@ -123,7 +125,10 @@ public class ShaderProgram {
         GL20.glShaderSource(shaderId, shader.toString());
         GL20.glCompileShader(shaderId);
 
-        printLogInfo(shaderId);
+        String error;
+        if ((error = printLogInfo(shaderId)) != null) {
+            JOptionPane.showMessageDialog(null, "Shader '"+title+"' failed to compile. Terasology might not look quite as good as it should now...\n\n"+error, "Shader compilation error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private String readShader(String filename) {
@@ -140,26 +145,25 @@ public class ShaderProgram {
         return code;
     }
 
-    private void printLogInfo(int shaderId) {
-        IntBuffer intBuffer = BufferUtils.createIntBuffer(1);
-        GL20.glGetShader(shaderId, GL20.GL_INFO_LOG_LENGTH, intBuffer);
+    private String printLogInfo(int shaderId) {
+        int length = ARBShaderObjects.glGetObjectParameteriARB(shaderId, ARBShaderObjects.GL_OBJECT_INFO_LOG_LENGTH_ARB);
 
-        int length = intBuffer.get();
+        int compileStatus = ARBShaderObjects.glGetObjectParameteriARB(shaderId, ARBShaderObjects.GL_OBJECT_COMPILE_STATUS_ARB);
+        //int linkStatus = ARBShaderObjects.glGetObjectParameteriARB(shaderId, ARBShaderObjects.GL_OBJECT_LINK_STATUS_ARB);
+        //int validateStatus = ARBShaderObjects.glGetObjectParameteriARB(shaderId, ARBShaderObjects.GL_OBJECT_VALIDATE_STATUS_ARB);
 
-        if (length <= 1) {
-            return;
+        String logEntry = ARBShaderObjects.glGetInfoLogARB(shaderId, length);
+
+        if (length > 0) {
+            logger.error("{}", logEntry);
         }
 
-        ByteBuffer infoBuffer = BufferUtils.createByteBuffer(length);
-        intBuffer.flip();
+        if (compileStatus == 0 /*|| linkStatus == 0 || validateStatus == 0*/) {
+            return logEntry;
+        }
 
-        GL20.glGetShaderInfoLog(shaderId, intBuffer, infoBuffer);
-
-        int actualLength = intBuffer.get();
-        byte[] infoBytes = new byte[actualLength];
-        infoBuffer.get(infoBytes);
-
-        logger.debug("{}", new String(infoBytes));
+        logger.info("Shader '"+title+"' successfully compiled.");
+        return null;
     }
 
     public void enable() {
@@ -183,6 +187,12 @@ public class ShaderProgram {
         enable();
         int id = GL20.glGetUniformLocation(shaderProgram, desc);
         GL20.glUniform1f(id, f);
+    }
+
+    public void setFloat2(String desc, float f1, float f2) {
+        enable();
+        int id = GL20.glGetUniformLocation(shaderProgram, desc);
+        GL20.glUniform2f(id, f1, f2);
     }
 
     public void setFloat3(String desc, float f1, float f2, float f3) {
@@ -213,6 +223,18 @@ public class ShaderProgram {
         enable();
         int id = GL20.glGetUniformLocation(shaderProgram, desc);
         GL20.glUniform1(id, buffer);
+    }
+
+    public void setMatrix4(String desc, Matrix4f m) {
+        enable();
+        int id = GL20.glGetUniformLocation(shaderProgram, desc);
+        GL20.glUniformMatrix4(id, false, TeraMath.matrixToFloatBuffer(m));
+    }
+
+    public void setMatrix3(String desc, Matrix3f m) {
+        enable();
+        int id = GL20.glGetUniformLocation(shaderProgram, desc);
+        GL20.glUniformMatrix3(id, false, TeraMath.matrixToFloatBuffer(m));
     }
 
     public IShaderParameters getShaderParameters() {

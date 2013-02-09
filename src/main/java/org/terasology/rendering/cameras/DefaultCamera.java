@@ -20,6 +20,7 @@ import static org.lwjgl.opengl.GL11.glLoadIdentity;
 import static org.lwjgl.opengl.GL11.glMatrixMode;
 import static org.lwjgl.util.glu.GLU.gluPerspective;
 
+import javax.vecmath.Matrix4f;
 import javax.vecmath.Vector3f;
 
 import org.lwjgl.opengl.Display;
@@ -36,33 +37,47 @@ public class DefaultCamera extends Camera {
 
     private float _bobbingRotationOffsetFactor, _bobbingVerticalOffsetFactor = 0.0f;
 
-    public void loadProjectionMatrix(float fov) {
+    public void loadProjectionMatrix() {
         glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        float aspectRatio = (float) Display.getWidth() / Display.getHeight();
-        float fovy = (float) (2 * Math.atan2(Math.tan(0.5 * fov * TeraMath.DEG_TO_RAD), aspectRatio)) * TeraMath.RAD_TO_DEG;
-        gluPerspective(fovy, aspectRatio, 0.1f, 512f);
+        GL11.glLoadMatrix(TeraMath.matrixToBuffer(_projectionMatrix));
         glMatrixMode(GL11.GL_MODELVIEW);
     }
 
     public void loadModelViewMatrix() {
         glMatrixMode(GL11.GL_MODELVIEW);
-        glLoadIdentity();
-        Vector3f right = new Vector3f();
-        right.cross(_viewingDirection, _up);
-        right.scale(_bobbingRotationOffsetFactor);
-        GLU.gluLookAt(0f, _bobbingVerticalOffsetFactor * 2.0f, 0f, _viewingDirection.x, _viewingDirection.y + _bobbingVerticalOffsetFactor * 2.0f, _viewingDirection.z, _up.x + right.x, _up.y + right.y, _up.z + right.z);
+        GL11.glLoadMatrix(TeraMath.matrixToBuffer(_viewMatrix));
         _viewFrustum.updateFrustum();
     }
 
     public void loadNormalizedModelViewMatrix() {
         glMatrixMode(GL11.GL_MODELVIEW);
-        glLoadIdentity();
+        GL11.glLoadMatrix(TeraMath.matrixToBuffer(_normViewMatrix));
+        _viewFrustum.updateFrustum();
+    }
+
+    public void update(float deltaT) {
+        super.update(deltaT);
+        updateMatrices();
+    }
+
+    public void updateMatrices() {
+        updateMatrices(_activeFov);
+    }
+
+    public void updateMatrices(float overrideFov) {
         Vector3f right = new Vector3f();
         right.cross(_viewingDirection, _up);
         right.scale(_bobbingRotationOffsetFactor);
-        GLU.gluLookAt(0f, 0f, 0f, _viewingDirection.x, _viewingDirection.y, _viewingDirection.z, _up.x + right.x, _up.y + right.y, _up.z + right.z);
-        _viewFrustum.updateFrustum();
+
+        _projectionMatrix = TeraMath.createProjectionMatrix(overrideFov, 0.1f, 512.0f);
+
+        _viewMatrix = TeraMath.createViewMatrix(0f, _bobbingVerticalOffsetFactor * 2.0f, 0f, _viewingDirection.x, _viewingDirection.y + _bobbingVerticalOffsetFactor * 2.0f,
+                _viewingDirection.z, _up.x + right.x, _up.y + right.y, _up.z + right.z);
+        _normViewMatrix = TeraMath.createViewMatrix(0f, 0f, 0f, _viewingDirection.x, _viewingDirection.y, _viewingDirection.z, _up.x + right.x, _up.y + right.y, _up.z + right.z);
+
+        _prevViewProjectionMatrix = new Matrix4f(_viewProjectionMatrix);
+        _viewProjectionMatrix = TeraMath.calcViewProjectionMatrix(_viewMatrix, _projectionMatrix);
+        _inverseViewProjectionMatrix.invert(_viewProjectionMatrix);
     }
 
     public void setBobbingRotationOffsetFactor(float f) {

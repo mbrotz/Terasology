@@ -44,7 +44,7 @@ import com.google.common.io.CharStreams;
  * @author Immortius
  */
 public class Shader implements Asset {
-    private static final String PreProcessorPreamble = "#version 120 \n float TEXTURE_OFFSET = " + Block.TEXTURE_OFFSET + "; \n";
+    private static final String PreProcessorPreamble = "#version 120\n float TEXTURE_OFFSET = " + Block.TEXTURE_OFFSET + ";\n";
     private static String IncludedFunctionsVertex = "", IncludedFunctionsFragment = "";
 
     private static final Logger logger = LoggerFactory.getLogger(Shader.class);
@@ -211,10 +211,22 @@ public class Shader implements Asset {
             builder.append("#define ANIMATED_WATER_AND_GRASS \n");
         if (Config.getInstance().getBlurIntensity() == 0)
             builder.append("#define NO_BLUR \n");
-        if (!Config.getInstance().isEnablePostProcessingEffects())
-            builder.append("#define NO_POST_PROCESSING \n");
         if (Config.getInstance().isFlickeringLight())
             builder.append("#define FLICKERING_LIGHT \n");
+        if (Config.getInstance().isVignette())
+            builder.append("#define VIGNETTE \n");
+        if (Config.getInstance().isBloom())
+            builder.append("#define BLOOM \n");
+        if (Config.getInstance().isMotionBlur())
+            builder.append("#define MOTION_BLUR \n");
+        if (Config.getInstance().isSSAO())
+            builder.append("#define SSAO \n");
+        if (Config.getInstance().isFilmGrain())
+            builder.append("#define FILM_GRAIN \n");
+        if (Config.getInstance().isOutline())
+            builder.append("#define OUTLINE \n");
+        if (Config.getInstance().isLightShafts())
+            builder.append("#define LIGHT_SHAFTS \n");
         return builder;
     }
 
