@@ -34,7 +34,7 @@ import org.terasology.world.chunks.ChunkType;
 public class MiniatureChunk extends Chunk {
     
     public MiniatureChunk() {
-        super(ChunkType.Miniature);
+        super(ChunkType.Miniature, 0, 0, 0);
     }
 
 }

@@ -12,8 +12,8 @@ public class TerasologyMonitor extends JFrame {
     
     private final JTabbedPane tabs;
     
-    private final ThreadMonitor threadMonitor;
-    private final ChunkMonitor chunkMonitor;
+    private final ThreadMonitorPanel threadMonitor;
+    private final ChunkMonitorPanel chunkMonitor;
     
     public TerasologyMonitor() {
         this("Terasology Monitor", 10, 10, 800, 600);
@@ -26,10 +26,10 @@ public class TerasologyMonitor extends JFrame {
         
         tabs = new JTabbedPane();
         
-        threadMonitor = new ThreadMonitor();
+        threadMonitor = new ThreadMonitorPanel();
         threadMonitor.setVisible(true);
         
-        chunkMonitor = new ChunkMonitor();
+        chunkMonitor = new ChunkMonitorPanel();
         chunkMonitor.setVisible(true);
         
         tabs.add("Thread Monitor", threadMonitor);

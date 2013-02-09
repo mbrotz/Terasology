@@ -53,7 +53,9 @@ import org.terasology.world.lighting.InternalLightProcessor;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 
 /**
@@ -78,10 +80,11 @@ public class LocalChunkProvider implements ChunkProvider {
     private BlockingQueue<ChunkRequest> reviewChunkQueue;
     private ExecutorService reviewThreads;
     private ExecutorService chunkProcessingThreads;
-
+    
     private Set<CacheRegion> regions = Sets.newHashSet();
 
     private ConcurrentMap<Vector3i, Chunk> nearCache = Maps.newConcurrentMap();
+    private final ConcurrentMap<Vector3i, Boolean> genCache = Maps.newConcurrentMap();
 
     private EntityRef worldEntity = EntityRef.NULL;
 
@@ -312,7 +315,7 @@ public class LocalChunkProvider implements ChunkProvider {
     public float size() {
         return farStore.size();
     }
-
+    
     private void checkOrCreateChunk(Vector3i chunkPos) {
         if (!chunkType.isStackable && (chunkPos.y != 0)) {
             logger.error("The chunk type {} is not stackable. The requested chunk {} will not be generated.", chunkType, chunkPos);
@@ -321,31 +324,36 @@ public class LocalChunkProvider implements ChunkProvider {
         Chunk chunk = getChunk(chunkPos);
         if (chunk == null) {
             PerformanceMonitor.startActivity("Check chunk in cache");
-            if (farStore.contains(chunkPos)) {
-                chunkTasksQueue.offer(new AbstractChunkTask(chunkPos, this) {
-                    @Override
-                    public void enact() {
-                        Chunk chunk = farStore.get(getPosition());
-                        if (nearCache.putIfAbsent(getPosition(), chunk) == null) {
-                            if (chunk.getChunkState() == ChunkState.COMPLETE) {
-                                for (Vector3i adjPos : Region3i.createFromCenterExtents(getPosition(), LOCAL_REGION_EXTENTS)) {
-                                    checkChunkReady(adjPos);
+            if (!genCache.containsKey(chunkPos)) {
+                genCache.put(chunkPos, true);
+                if (farStore.contains(chunkPos)) {
+                    chunkTasksQueue.offer(new AbstractChunkTask(chunkPos, this) {
+                        @Override
+                        public void enact() {
+                            Chunk chunk = farStore.get(getPosition());
+                            if (nearCache.putIfAbsent(getPosition(), chunk) == null) {
+                                genCache.remove(getPosition());
+                                if (chunk.getChunkState() == ChunkState.COMPLETE) {
+                                    for (Vector3i adjPos : Region3i.createFromCenterExtents(getPosition(), LOCAL_REGION_EXTENTS)) {
+                                        checkChunkReady(adjPos);
+                                    }
                                 }
+                                reviewChunkQueue.offer(new ChunkRequest(ChunkRequest.RequestType.REVIEW, Region3i.createFromCenterExtents(getPosition(), LOCAL_REGION_EXTENTS)));
                             }
-                            reviewChunkQueue.offer(new ChunkRequest(ChunkRequest.RequestType.REVIEW, Region3i.createFromCenterExtents(getPosition(), LOCAL_REGION_EXTENTS)));
                         }
-                    }
-                });
-            } else {
-                chunkTasksQueue.offer(new AbstractChunkTask(chunkPos, this) {
-                    @Override
-                    public void enact() {
-                        Chunk chunk = generator.generateChunk(getPosition());
-                        if (null == nearCache.putIfAbsent(getPosition(), chunk)) {
-                            reviewChunkQueue.offer(new ChunkRequest(ChunkRequest.RequestType.REVIEW, Region3i.createFromCenterExtents(getPosition(), LOCAL_REGION_EXTENTS)));
+                    });
+                } else {
+                    chunkTasksQueue.offer(new AbstractChunkTask(chunkPos, this) {
+                        @Override
+                        public void enact() {
+                            Chunk chunk = generator.generateChunk(getPosition());
+                            if (nearCache.putIfAbsent(getPosition(), chunk) == null) {
+                                genCache.remove(getPosition());
+                                reviewChunkQueue.offer(new ChunkRequest(ChunkRequest.RequestType.REVIEW, Region3i.createFromCenterExtents(getPosition(), LOCAL_REGION_EXTENTS)));
+                            }
                         }
-                    }
-                });
+                    });
+                }
             }
             PerformanceMonitor.endActivity();
         } else {

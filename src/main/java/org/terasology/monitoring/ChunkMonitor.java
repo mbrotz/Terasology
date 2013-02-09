@@ -1,10 +1,10 @@
 package org.terasology.monitoring;
 
-import java.lang.ref.WeakReference;
+import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
 
-import org.terasology.math.Vector3i;
 import org.terasology.monitoring.impl.ChunkEvent;
 import org.terasology.world.chunks.Chunk;
 
@@ -14,8 +14,8 @@ import com.google.common.eventbus.EventBus;
 public class ChunkMonitor {
 
     private static final EventBus eventbus = new EventBus("ChunkMonitor");
-    private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
-    private static final LinkedList<Entry> chunks = new LinkedList<Entry>();
+    private static final ReentrantLock lock = new ReentrantLock();
+    private static final LinkedList<WeakChunk> chunks = new LinkedList<WeakChunk>();
     
     private ChunkMonitor() {}
 
@@ -25,24 +25,64 @@ public class ChunkMonitor {
     
     public static void registerChunk(Chunk chunk) {
         Preconditions.checkNotNull(chunk, "The parameter 'chunk' must not be null");
-        lock.writeLock().lock();
+        final WeakChunk w = new WeakChunk(chunk);
+        lock.lock();
         try {
-            chunks.add(new Entry(chunk));
+            chunks.add(w);
         } finally {
-            lock.writeLock().unlock();
+            lock.unlock();
         }
-        eventbus.post(new ChunkEvent.Created(chunk));
+        eventbus.post(new ChunkEvent.Created(w));
     }
     
-    protected static class Entry {
-        
-        public final Vector3i position;
-        public final WeakReference<Chunk> ref;
-        
-        public Entry(Chunk chunk) {
-            Preconditions.checkNotNull(chunk, "The parameter 'chunk' must not be null");
-            this.position = chunk.getPos();
-            this.ref = new WeakReference<Chunk>(chunk);
+    public static void getChunks(List<Chunk> output) {
+        lock.lock();
+        try {
+            final Iterator<WeakChunk> it = chunks.iterator();
+            while (it.hasNext()) {
+                final WeakChunk e = it.next();
+                final Chunk c = e.ref.get();
+                if (c != null) {
+                    output.add(c);
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+    
+    public static void getWeakChunks(List<WeakChunk> output) {
+        lock.lock();
+        try {
+            final Iterator<WeakChunk> it = chunks.iterator();
+            while (it.hasNext()) {
+                final WeakChunk e = it.next();
+                final Chunk c = e.ref.get();
+                if (c != null) {
+                    output.add(e);
+                }
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+    
+    public static int removeDeadChunks() {
+        lock.lock();
+        try {
+            int result = 0;
+            final Iterator<WeakChunk> it = chunks.iterator();
+            while (it.hasNext()) {
+                final WeakChunk e = it.next();
+                final Chunk c = e.ref.get();
+                if (c == null) {
+                    it.remove();
+                    ++result;
+                }
+            }
+            return result;
+        } finally {
+            lock.unlock();
         }
     }
 }

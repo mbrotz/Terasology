@@ -1,8 +1,6 @@
 package org.terasology.monitoring.impl;
 
-import java.util.Date;
-
-import org.terasology.math.Vector3i;
+import org.terasology.monitoring.WeakChunk;
 import org.terasology.world.chunks.Chunk;
 import org.terasology.world.chunks.ChunkState;
 
@@ -10,28 +8,46 @@ import com.google.common.base.Preconditions;
 
 public abstract class ChunkEvent {
 
-    public final Vector3i position;
-    public final Date time;
+    public abstract Chunk getChunk();
     
-    public ChunkEvent(Chunk chunk) {
-        Preconditions.checkNotNull(chunk, "The parameter 'chunk' must not be null");
-        this.position = chunk.getPos();
-        this.time = new Date();
-    }
-
-    public static class Created extends ChunkEvent {
-        public Created(Chunk chunk) {
-            super(chunk);
+    protected static class BasicChunkEvent extends ChunkEvent {
+        
+        protected final Chunk chunk;
+        
+        public BasicChunkEvent(Chunk chunk) {
+            Preconditions.checkNotNull(chunk, "The parameter 'chunk' must not be null");
+            this.chunk = chunk;
+        }
+        
+        public final Chunk getChunk() {
+            return chunk;
         }
     }
     
-    public static class Disposed extends ChunkEvent {
+    public static class Created extends ChunkEvent {
+        
+        protected final WeakChunk weakChunk;
+        
+        public Created(WeakChunk chunk) {
+            this.weakChunk = chunk;
+        }
+        
+        public final WeakChunk getWeakChunk() {
+            return weakChunk;
+        }
+        
+        public final Chunk getChunk() {
+            return weakChunk.getChunk();
+        }
+    }
+    
+    public static class Disposed extends BasicChunkEvent {
         public Disposed(Chunk chunk) {
             super(chunk);
         }
     }
     
-    public static class StateChanged extends ChunkEvent {
+    public static class StateChanged extends BasicChunkEvent {
         
         public final ChunkState oldState, newState;
         
@@ -42,7 +58,7 @@ public abstract class ChunkEvent {
         }
     }
     
-    public static class Deflated extends ChunkEvent {
+    public static class Deflated extends BasicChunkEvent {
         
         public final int oldSize, newSize;
         

@@ -21,17 +21,22 @@ import javax.swing.ListCellRenderer;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terasology.monitoring.SingleThreadMonitor;
+import org.terasology.monitoring.ThreadMonitor;
 import org.terasology.monitoring.ThreadMonitor.ThreadMonitorEvent;
 
 import com.google.common.eventbus.Subscribe;
 
 @SuppressWarnings("serial")
-public class ThreadMonitor extends JPanel {
+public class ThreadMonitorPanel extends JPanel {
+
+    protected static final Logger logger = LoggerFactory.getLogger(ThreadMonitorPanel.class);
 
     private final JList list;
     
-    public ThreadMonitor() {
+    public ThreadMonitorPanel() {
         setLayout(new BorderLayout());
         list = new JList(new ThreadListModel());
         list.setCellRenderer(new ThreadListRenderer());
@@ -175,11 +180,11 @@ public class ThreadMonitor extends JPanel {
         }
         
         protected ThreadListModel() {
-            org.terasology.monitoring.ThreadMonitor.getEventBus().register(this);
+            ThreadMonitor.getEventBus().register(this);
             queue.add(new Task() {
                 @Override
                 public void execute() {
-                    org.terasology.monitoring.ThreadMonitor.getThreadMonitors(monitors, false);
+                    ThreadMonitor.getThreadMonitors(monitors, false);
                     if (monitors.size() > 0) {
                         Collections.sort(monitors);
                         invokeIntervalAdded(0, monitors.size()-1);
@@ -190,7 +195,7 @@ public class ThreadMonitor extends JPanel {
                 @Override
                 public void run() {
                     Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
-                    final SingleThreadMonitor monitor = org.terasology.monitoring.ThreadMonitor.create("Monitoring.Threads");
+                    final SingleThreadMonitor monitor = ThreadMonitor.create("Monitoring.Threads");
                     try {
                         while (true) {
                             final Task task = queue.poll(500, TimeUnit.MILLISECONDS);

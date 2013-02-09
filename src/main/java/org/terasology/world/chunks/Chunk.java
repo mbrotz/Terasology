@@ -15,15 +15,12 @@
  */
 package org.terasology.world.chunks;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.text.DecimalFormat;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.vecmath.Vector3f;
 
+import org.newdawn.slick.util.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.config.AdvancedConfig;
@@ -57,7 +54,7 @@ import com.google.common.base.Preconditions;
  * @author Benjamin Glatzel <benjamin.glatzel@me.com>
  * @author Manuel Brotz <manu.brotz@gmx.ch>
  */
-public class Chunk implements Externalizable {
+public class Chunk {
     protected static final Logger logger = LoggerFactory.getLogger(Chunk.class);
     
     public static final long serialVersionUID = 79881925217704826L;
@@ -89,30 +86,16 @@ public class Chunk implements Externalizable {
 
     private boolean disposed = false;
 
-    /**
-     * This constructor is for compatibility only and will be removed later.
-     */
-    @Deprecated
-    public Chunk() {
-        this(ChunkType.Classic);
-    }
-    
-    public Chunk(ChunkType chunkType) {
-        this.chunkType = Preconditions.checkNotNull(chunkType, "The parameter 'chunkType' must not be null");
-        final Chunks c = Chunks.getInstance();
-        blockData = c.getBlockDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
-        sunlightData = c.getSunlightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
-        lightData = c.getLightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
-        extraData = c.getExtraDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
-        dirty = true;
-        ChunkMonitor.registerChunk(this);
-    }
-
     public Chunk(ChunkType chunkType, int x, int y, int z) {
-        this(chunkType);
-        pos.x = x;
-        pos.y = y;
-        pos.z = z;
+        this.chunkType = Preconditions.checkNotNull(chunkType, "The parameter 'chunkType' must not be null");
+        this.pos.set(x, y, z);
+        final Chunks c = Chunks.getInstance();
+        this.blockData = c.getBlockDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+        this.sunlightData = c.getSunlightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+        this.lightData = c.getLightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+        this.extraData = c.getExtraDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+        this.dirty = true;
+        ChunkMonitor.registerChunk(this);
     }
 
     public Chunk(ChunkType chunkType, Vector3i pos) {
@@ -120,14 +103,15 @@ public class Chunk implements Externalizable {
     }
 
     public Chunk(Chunk other) {
-        chunkType = other.chunkType;
-        pos.set(other.pos);
-        blockData = other.blockData.copy();
-        sunlightData = other.sunlightData.copy();
-        lightData = other.lightData.copy();
-        extraData = other.extraData.copy();
-        chunkState = other.chunkState;
-        dirty = true;
+        this.chunkType = other.chunkType;
+        this.pos.set(other.pos);
+        this.blockData = other.blockData.copy();
+        this.sunlightData = other.sunlightData.copy();
+        this.lightData = other.lightData.copy();
+        this.extraData = other.extraData.copy();
+        this.chunkState = other.chunkState;
+        this.dirty = true;
+        Log.info("Copied chunk: " + pos);
         ChunkMonitor.registerChunk(this);
     }
     
@@ -139,7 +123,7 @@ public class Chunk implements Externalizable {
         this.lightData = Preconditions.checkNotNull(light);
         this.extraData = Preconditions.checkNotNull(liquid);
         this.chunkState = Preconditions.checkNotNull(chunkState);
-        dirty = true;
+        this.dirty = true;
         ChunkMonitor.registerChunk(this);
     }
     
@@ -451,31 +435,6 @@ public class Chunk implements Externalizable {
         return aabb;
     }
 
-    @Deprecated
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeInt(pos.x);
-        out.writeInt(pos.y);
-        out.writeInt(pos.z);
-        out.writeObject(chunkState);
-        out.writeObject(blockData);
-        out.writeObject(sunlightData);
-        out.writeObject(lightData);
-        out.writeObject(extraData);
-    }
-
-    @Deprecated
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        pos.x = in.readInt();
-        pos.y = in.readInt();
-        pos.z = in.readInt();
-        setDirty(true);
-        chunkState = (ChunkState) in.readObject();
-        blockData = (TeraArray) in.readObject();
-        sunlightData = (TeraArray) in.readObject();
-        lightData = (TeraArray) in.readObject();
-        extraData = (TeraArray) in.readObject();
-    }
-    
     private static DecimalFormat fpercent = new DecimalFormat("0.##");
     private static DecimalFormat fsize = new DecimalFormat("#,###");
     public void deflate() {
