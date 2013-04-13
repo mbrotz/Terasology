@@ -6,7 +6,13 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.awt.image.BufferedImage;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -21,34 +27,47 @@ import javax.swing.SwingUtilities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terasology.game.CoreRegistry;
+import org.terasology.logic.LocalPlayer;
 import org.terasology.math.Vector3i;
 import org.terasology.monitoring.ChunkMonitor;
 import org.terasology.monitoring.SingleThreadMonitor;
 import org.terasology.monitoring.ThreadMonitor;
 import org.terasology.monitoring.WeakChunk;
 import org.terasology.monitoring.impl.ChunkEvent;
+import org.terasology.rendering.world.WorldRenderer;
 import org.terasology.world.chunks.Chunk;
+import org.terasology.world.chunks.provider.ChunkProvider;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultiset;
-import com.google.common.collect.Multiset;
 import com.google.common.eventbus.Subscribe;
 
 @SuppressWarnings("serial")
 public class ChunkMonitorDisplay extends JPanel {
 
+    public static final int PURGE_DEAD_CHUNKS_INTERVAL = 30000;
+    
+    public static final Color ColorComplete = new Color(0, 38, 28);
+    public static final Color ColorFullLightConnectivityPending = new Color(69, 191, 85);
+    public static final Color ColorLightPropagationPending = new Color(22, 127, 57);
+    public static final Color ColorInternalLighGenerationPending = new Color(4, 76, 41);
+    public static final Color ColorAdjacencyGenerationPending = new Color(150, 237, 137);
+    public static final Color ColorDead = Color.lightGray;
+    public static final Color ColorInvalid = Color.red;
+    
     protected static final Logger logger = LoggerFactory.getLogger(ChunkMonitorDisplay.class);
 
     protected final List<WeakChunk> chunks = new LinkedList<WeakChunk>();
-    protected final Multiset<Vector3i> set = HashMultiset.create();
     
     protected AtomicReference<BufferedImage> imageRef = new AtomicReference<BufferedImage>();
     protected int refreshInterval, centerOffsetX = 0, centerOffsetY = 0, offsetX, offsetY, chunkSize;
+    protected int renderY = 0, minRenderY = 0, maxRenderY = 0;
+    protected boolean followPlayer = true;
     
     protected final BlockingQueue<Request> queue = new LinkedBlockingQueue<Request>();
     protected final ExecutorService executor;
     protected final Runnable renderTask;
-    
+        
     protected interface Request {
         
         public boolean isChunkEvent();
@@ -73,6 +92,13 @@ public class ChunkMonitorDisplay extends JPanel {
         @Override
         public void execute() {
             ChunkMonitor.getWeakChunks(chunks);
+            for (WeakChunk w : chunks) {
+                final Vector3i pos = w.getPos();
+                if (pos.y < minRenderY)
+                    minRenderY = pos.y;
+                if (pos.y > maxRenderY)
+                    maxRenderY = pos.y;
+            }
         }
     }
     
@@ -108,7 +134,7 @@ public class ChunkMonitorDisplay extends JPanel {
             Preconditions.checkNotNull(event, "The parameter 'event' must not be null");
             this.event = event;
         }
-
+        
         @Override
         public boolean isChunkEvent() {return true;}
         
@@ -117,19 +143,18 @@ public class ChunkMonitorDisplay extends JPanel {
             if (event instanceof ChunkEvent.Created) {
                 final ChunkEvent.Created e = (ChunkEvent.Created) event;
                 final WeakChunk w = e.getWeakChunk();
-                final Vector3i p = w.getPos();
+                final Vector3i pos = w.getPos();
+                if (pos.y < minRenderY)
+                    minRenderY = pos.y;
+                if (pos.y > maxRenderY)
+                    maxRenderY = pos.y;
                 chunks.add(w);
-                set.add(p);
-                final int c = set.count(p);
-                if (c > 1) {
-                    System.out.println("Multiple chunks: " + p + " -> " + c);
-                }
             }
         }
     }
     
-    protected class CompListener implements ComponentListener {
-
+    protected class ResizeListener implements ComponentListener {
+        
         @Override
         public void componentResized(ComponentEvent e) {
             queue.offer(new ResizeRequest(getWidth(), getHeight()));
@@ -143,6 +168,51 @@ public class ChunkMonitorDisplay extends JPanel {
         public void componentHidden(ComponentEvent e) {}
     }
     
+    protected class MouseInputListener implements MouseWheelListener, MouseMotionListener, MouseListener {
+
+        @Override
+        public void mouseDragged(MouseEvent e) {
+        }
+
+        @Override
+        public void mouseMoved(MouseEvent e) {
+        }
+
+        @Override
+        public void mouseWheelMoved(MouseWheelEvent e) {
+            setRenderYDelta(e.getWheelRotation());
+        }
+
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            if (e.getButton() == 2) {
+                final Vector3i pos = calcPlayerChunkPos();
+                if (pos != null) 
+                    setRenderY(pos.y);
+            }
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+            
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+            
+        }
+
+        @Override
+        public void mouseEntered(MouseEvent e) {
+            
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+            
+        }
+    }
+    
     protected class RenderTask implements Runnable {
 
         protected RenderTask() {}
@@ -154,6 +224,7 @@ public class ChunkMonitorDisplay extends JPanel {
             int ymin = Integer.MAX_VALUE, ymax = Integer.MIN_VALUE;
             for (WeakChunk w : chunks) {
                 final Vector3i pos = w.getPos();
+                if (pos.y != renderY) continue;
                 if (pos.x < xmin) xmin = pos.x;
                 if (pos.x > xmax) xmax = pos.x;
                 if (pos.z < ymin) ymin = pos.z;
@@ -164,22 +235,22 @@ public class ChunkMonitorDisplay extends JPanel {
 
         protected Color calcChunkColor(Chunk chunk) {
             if (chunk == null)
-                return Color.yellow;
+                return ColorDead;
             
             switch(chunk.getChunkState()) {
             case ADJACENCY_GENERATION_PENDING:
-                return Color.lightGray; 
+                return ColorAdjacencyGenerationPending;
             case FULL_LIGHT_CONNECTIVITY_PENDING:
-                return Color.cyan;
+                return ColorFullLightConnectivityPending;
             case LIGHT_PROPAGATION_PENDING:
-                return Color.magenta;
+                return ColorLightPropagationPending;
             case INTERNAL_LIGHT_GENERATION_PENDING:
-                return Color.orange;
+                return ColorInternalLighGenerationPending;
             case COMPLETE:
-                return Color.green;
+                return ColorComplete;
             }
             
-            return Color.red;
+            return ColorInvalid;
         }
 
         protected void renderBox(Graphics2D g, int offsetx, int offsety, Rectangle box) {
@@ -194,7 +265,8 @@ public class ChunkMonitorDisplay extends JPanel {
 
         protected void renderChunks(Graphics2D g, int offsetx, int offsety, List<WeakChunk> chunks) {
             for (WeakChunk w : chunks) {
-                renderChunk(g, offsetx, offsety, w.getPos(), w.getChunk());
+                if (w.getPos().y == renderY) 
+                    renderChunk(g, offsetx, offsety, w.getPos(), w.getChunk());
             }
         }
 
@@ -233,13 +305,44 @@ public class ChunkMonitorDisplay extends JPanel {
             long time = System.currentTimeMillis();
             final Request r = queue.poll(500, TimeUnit.MILLISECONDS);
             if (r != null) {
-                output.clear();
                 output.add(r);
                 queue.drainTo(output);
             }
             return (System.currentTimeMillis() - time);
         }
-
+        
+        protected void purgeDeadChunks() {
+            ChunkMonitor.purgeDeadChunks();
+            final Iterator<WeakChunk> it = chunks.iterator();
+            while (it.hasNext()) {
+                final WeakChunk w = it.next();
+                if (w.getChunk() == null) {
+                    it.remove();
+                }
+            }
+        }
+        
+        protected void recomputeRenderY() {
+            int min = 0, max = 0, y = renderY;
+            for (WeakChunk w : chunks) {
+                final Vector3i pos = w.getPos();
+                if (pos.y < min) min = pos.y;
+                if (pos.y > max) max = pos.y;
+            }
+            if (y < min) y = min;
+            if (y > max) y = max;
+            minRenderY = min;
+            maxRenderY = max;
+            renderY = y;
+        }
+        
+        protected void doFollowPlayer() {
+            final Vector3i pos = calcPlayerChunkPos();
+            if (pos != null) {
+                setRenderY(pos.y);
+            }
+        }
+        
         @Override
         public void run() {
             
@@ -247,6 +350,8 @@ public class ChunkMonitorDisplay extends JPanel {
             
             final LinkedList<Request> requests = new LinkedList<Request>();
             final SingleThreadMonitor monitor = ThreadMonitor.create("Monitoring.Chunks", "Requests", "Events");
+            
+            long lastPurgeTime = System.currentTimeMillis();
             
             try {
                 while (true) {
@@ -263,7 +368,15 @@ public class ChunkMonitorDisplay extends JPanel {
                             else
                                 monitor.increment(0);
                         }
+                    requests.clear();
+                    if (followPlayer)
+                        doFollowPlayer();
                     render();
+                    if (System.currentTimeMillis() - lastPurgeTime >= 30000) {
+                        purgeDeadChunks();
+                        recomputeRenderY();
+                        lastPurgeTime = System.currentTimeMillis();
+                    }
                     if (slept <= 400)
                         Thread.sleep(500 - slept);
                 }
@@ -276,10 +389,24 @@ public class ChunkMonitorDisplay extends JPanel {
         }
     };
 
+    protected Vector3i calcPlayerChunkPos() {
+        final LocalPlayer p = CoreRegistry.get(LocalPlayer.class);
+        if (p != null) {
+            final WorldRenderer renderer = CoreRegistry.get(WorldRenderer.class);
+            if (renderer != null)
+                return renderer.getChunkProvider().getChunkType().calcChunkPos(new Vector3i(p.getPosition()));
+        }
+        return null;
+    }
+
     public ChunkMonitorDisplay(int refreshInterval, int chunkSize) {
         Preconditions.checkArgument(refreshInterval >= 500, "Parameter 'refreshInterval' has to be greater or equal 500 (" + refreshInterval + ")");
         Preconditions.checkArgument(chunkSize >= 6, "Parameter 'chunkSize' has to be greater or equal 6 (" + chunkSize + ")");
-        addComponentListener(new CompListener());
+        addComponentListener(new ResizeListener());
+        final MouseInputListener ml = new MouseInputListener();
+        addMouseListener(ml);
+        addMouseMotionListener(ml);
+        addMouseWheelListener(ml);
         this.refreshInterval = refreshInterval;
         this.chunkSize = chunkSize;
         this.executor = Executors.newSingleThreadExecutor();
@@ -297,6 +424,44 @@ public class ChunkMonitorDisplay extends JPanel {
         if (value != chunkSize) {
             Preconditions.checkArgument(value >= 6, "Parameter 'value' has to be greater or equal 6 (" + value + ")");
             chunkSize = value;
+            queue.offer(new RenderRequest());
+        }
+        return this;
+    }
+    
+    public int getRenderY() {
+        return renderY;
+    }
+    
+    public int getMinRenderY() {
+        return minRenderY;
+    }
+    
+    public int getMaxRenderY() {
+        return maxRenderY;
+    }
+    
+    public ChunkMonitorDisplay setRenderY(int value) {
+        if (value < minRenderY) value = minRenderY;
+        if (value > maxRenderY) value = maxRenderY;
+        if (renderY != value) {
+            renderY = value;
+            queue.offer(new RenderRequest());
+        }
+        return this;
+    }
+    
+    public ChunkMonitorDisplay setRenderYDelta(int delta) {
+        return setRenderY(renderY + delta);
+    }
+    
+    public boolean getFollowPlayer() {
+        return followPlayer;
+    }
+    
+    public ChunkMonitorDisplay setFollowPlayer(boolean value) {
+        if (followPlayer != value) {
+            followPlayer = value;
             queue.offer(new RenderRequest());
         }
         return this;

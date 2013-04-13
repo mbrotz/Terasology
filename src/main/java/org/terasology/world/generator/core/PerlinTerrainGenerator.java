@@ -16,11 +16,14 @@
 
 package org.terasology.world.generator.core;
 
+import gnu.trove.map.hash.TIntObjectHashMap;
+
 import java.util.Map;
 
 import javax.vecmath.Vector2f;
 
 import org.terasology.math.TeraMath;
+import org.terasology.math.Vector3i;
 import org.terasology.utilities.PerlinNoise;
 import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.block.Block;
@@ -77,7 +80,7 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
     @Override
     public void generateChunk(Chunk c) {
         final ChunkType chunkType = c.getChunkType();
-        double[][][] densityMap = new double[chunkType.sizeX + 1][chunkType.sizeY + 1][chunkType.sizeZ + 1];
+        final double[][][] densityMap = new double[chunkType.sizeX + 1][chunkType.sizeY + 1][chunkType.sizeZ + 1];
 
         /*
          * Create the density map at a lower sample rate.
@@ -85,7 +88,7 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
         for (int x = 0; x <= chunkType.sizeX; x += SAMPLE_RATE_3D_HOR) {
             for (int z = 0; z <= chunkType.sizeZ; z += SAMPLE_RATE_3D_HOR) {
                 for (int y = 0; y <= chunkType.sizeY; y += SAMPLE_RATE_3D_VERT) {
-                    densityMap[x][y][z] = calcDensity(chunkType, c.getBlockWorldPosX(x), y, c.getBlockWorldPosZ(z));
+                    densityMap[x][y][z] = calcDensity(chunkType, c.getBlockWorldPosX(x), c.getBlockWorldPosY(y), c.getBlockWorldPosZ(z));
                 }
             }
         }
@@ -105,6 +108,8 @@ public class PerlinTerrainGenerator implements ChunkGenerator {
 
                 for (int y = chunkType.sizeY-1; y >= 0; y--) {
 
+                    final int worldY = c.getBlockWorldPosY(y);
+                    
                     if (y == 0) { // The very deepest layer of the world is an indestructible mantle
                         c.setBlock(x, y, z, mantle);
                         break;

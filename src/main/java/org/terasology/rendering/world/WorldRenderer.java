@@ -995,12 +995,12 @@ public final class WorldRenderer {
     public boolean pregenerateChunks() {
         boolean complete = true;
         int newChunkPosX = calcCamChunkOffsetX();
-        int newChunkPosY = calcCamChunkOffsetX();
+        int newChunkPosY = calcCamChunkOffsetY();
         int newChunkPosZ = calcCamChunkOffsetZ();
         int viewDistHalf = Config.getInstance().getActiveViewingDistance() / 2;
 
         _chunkProvider.update();
-        for (Vector3i pos : Region3i.createFromCenterExtents(new Vector3i(newChunkPosX, newChunkPosY * chunkType.fStackable, newChunkPosZ), new Vector3i(viewDistHalf, viewDistHalf * chunkType.fStackable, viewDistHalf))) {
+        for (Vector3i pos : Region3i.createFromCenterExtents(new Vector3i(newChunkPosX, newChunkPosY, newChunkPosZ), new Vector3i(viewDistHalf, viewDistHalf * chunkType.fStackable, viewDistHalf))) {
             Chunk chunk = _chunkProvider.getChunk(pos);
             if (chunk == null || chunk.getChunkState() != ChunkState.COMPLETE) {
                 complete = false;

@@ -67,7 +67,7 @@ public class ChunkMonitor {
         }
     }
     
-    public static int removeDeadChunks() {
+    public static int purgeDeadChunks() {
         lock.lock();
         try {
             int result = 0;

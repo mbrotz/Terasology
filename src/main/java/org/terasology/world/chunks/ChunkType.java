@@ -142,6 +142,33 @@ public enum ChunkType {
     }
     
     /**
+     * Returns the chunk position of a given coordinate.
+     * @param worldBlockPosX The X-coordinate of the block in the world
+     * @return The X-coordinate of the chunk
+     */
+    public int calcChunkPosX(float worldBlockPosX) {
+        return TeraMath.floorToInt(worldBlockPosX) >> powerX;
+    }
+
+    /**
+     * Returns the chunk position of a given coordinate
+     * @param worldBlockPosY The Y-coordinate of the block in the world
+     * @return The Y-coordinate of the chunk
+     */
+    public int calcChunkPosY(float worldBlockPosY) {
+        return TeraMath.floorToInt(worldBlockPosY) >> powerY;
+    }
+    
+    /**
+     * Returns the chunk position of a given coordinate.
+     * @param worldBlockPosZ The Z-coordinate of the block in the world
+     * @return The Z-coordinate of the chunk
+     */
+    public int calcChunkPosZ(float worldBlockPosZ) {
+        return TeraMath.floorToInt(worldBlockPosZ) >> powerZ;
+    }
+    
+    /**
      * Returns the chunk position of a given block position in the world.
      * @param blockWorldPos The position of the block in the world
      * @param output The vector recieving the result (must not be null)
@@ -185,6 +212,17 @@ public enum ChunkType {
         return new Vector3i(calcChunkPosX(x), calcChunkPosY(y), calcChunkPosZ(z));
     }
     
+    /**
+     * Returns the chunk position of a given block position in the world.
+     * @param x The X-coordinate of the block in the world
+     * @param y The Y-coordinate of the block in the world
+     * @param z The Z-coordinate of the block in the world
+     * @return The position of the chunk
+     */
+    public final Vector3i calcChunkPos(float x, float y, float z) {
+        return new Vector3i(calcChunkPosX(x), calcChunkPosY(y), calcChunkPosZ(z));
+    }
+    
     
     /**
      * Returns the internal position of a block within a chunk.
@@ -211,6 +249,33 @@ public enum ChunkType {
      */
     public int calcBlockPosZ(int worldBlockPosZ) {
         return worldBlockPosZ & chunkPosFilterZ;
+    }
+    
+    /**
+     * Returns the internal position of a block within a chunk.
+     * @param worldBlockPosX The X-coordinate of the block in the world
+     * @return The X-coordinate of the block within the chunk
+     */
+    public int calcBlockPosX(float worldBlockPosX) {
+        return TeraMath.floorToInt(worldBlockPosX) & chunkPosFilterX;
+    }
+    
+    /**
+     * Returns the internal position of a block within a chunk.
+     * @param worldBlockPosY The Y-coordinate of the block in the world
+     * @return The Y-coordinate of the block within the chunk
+     */
+    public int calcBlockPosY(float worldBlockPosY) {
+        return TeraMath.floorToInt(worldBlockPosY) & chunkPosFilterY;
+    }
+    
+    /**
+     * Returns the internal position of a block within a chunk.
+     * @param worldBlockPosZ The Z-coordinate of the block in the world
+     * @return The Z-coordinate of the block within the chunk
+     */
+    public int calcBlockPosZ(float worldBlockPosZ) {
+        return TeraMath.floorToInt(worldBlockPosZ) & chunkPosFilterZ;
     }
     
     /**
@@ -254,6 +319,17 @@ public enum ChunkType {
      * @return The position of the block
      */
     public final Vector3i calcBlockPos(int x, int y, int z) {
+        return new Vector3i(calcBlockPosX(x), calcBlockPosY(y), calcBlockPosZ(z));
+    }
+    
+    /**
+     * Returns the internal position of a block within a chunk.
+     * @param x The X-coordinate of the block in the world
+     * @param y The Y-coordinate of the block in the world
+     * @param z The Z-coordinate of the block in the world
+     * @return The position of the block
+     */
+    public final Vector3i calcBlockPos(float x, float y, float z) {
         return new Vector3i(calcBlockPosX(x), calcBlockPosY(y), calcBlockPosZ(z));
     }
     
