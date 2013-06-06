@@ -22,9 +22,9 @@ import com.google.common.collect.Maps;
  * @todo Finish support for chunk data extensions.
  *
  */
-public final class Chunks {
+public final class ChunkDataRegistry {
 
-    private static final Chunks instance = new Chunks();
+    private static final ChunkDataRegistry instance = new ChunkDataRegistry();
     
     private final Config config;
     
@@ -37,7 +37,7 @@ public final class Chunks {
     
     private final Chunk.ProtobufHandler handler;
     
-    private Chunks() {
+    private ChunkDataRegistry() {
         config = CoreRegistry.get(Config.class);
         
         final TeraArrays t = TeraArrays.getInstance();
@@ -83,7 +83,7 @@ public final class Chunks {
         return handler.decode(message);
     }
     
-    public static final Chunks getInstance() {
+    public static final ChunkDataRegistry getInstance() {
         return instance;
     }
 }

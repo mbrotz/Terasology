@@ -46,7 +46,7 @@ import org.terasology.protobuf.ChunksProtobuf.CompressedChunks;
 import org.terasology.protobuf.ChunksProtobuf.CompressedChunks.CompressedChunk;
 import org.terasology.protobuf.ChunksProtobuf.CompressedChunks.CompressionMethod;
 import org.terasology.world.chunks.Chunk;
-import org.terasology.world.chunks.Chunks;
+import org.terasology.world.chunks.ChunkDataRegistry;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -87,12 +87,12 @@ public class ChunkStoreProtobuf implements ChunkStore, Serializable {
         final GZIPInputStream gzIn = new GZIPInputStream(baIn);
         final CodedInputStream cIn = CodedInputStream.newInstance(gzIn);
         final ChunksProtobuf.Chunk message = ChunksProtobuf.Chunk.parseFrom(cIn);
-        return Chunks.getInstance().decode(message); 
+        return ChunkDataRegistry.getInstance().decode(message); 
     }
     
     protected byte[] encode(Chunk chunk) throws IOException {
         Preconditions.checkNotNull(chunk, "The parameter 'chunk' must not be null");
-        final ChunksProtobuf.Chunk message = Chunks.getInstance().encode(chunk);
+        final ChunksProtobuf.Chunk message = ChunkDataRegistry.getInstance().encode(chunk);
         final ByteArrayOutputStream baOut = new ByteArrayOutputStream();
         final GZIPOutputStream gzOut = new GZIPOutputStream(baOut);
         final CodedOutputStream cOut = CodedOutputStream.newInstance(gzOut);

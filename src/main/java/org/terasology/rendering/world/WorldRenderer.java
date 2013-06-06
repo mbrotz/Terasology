@@ -232,12 +232,12 @@ public final class WorldRenderer {
                 f = new File(PathManager.getInstance().getWorldSavePath(worldInfo.getTitle()), worldInfo.getTitle() + ".dat");
                 if (f.exists()) {
                     chunkStore = loadChunkStore(f);
-                    logger.info("Loaded chunks in old java object serialization format");
+                    logger.info("Loaded chunks from old java object serialization format");
                     loaded = true;
                 }
             }
             if (loaded)
-                logger.info("It took {} ms to load chunks from file {}", (System.currentTimeMillis() - time), f);
+                logger.info("Loaded chunks from file {}, took {} ms", f, (System.currentTimeMillis() - time));
         } catch (Exception e) {
             /* TODO: We really should expose this error via UI so player knows that there is an issue with their world
                (don't have the game continue or we risk overwriting their game)
@@ -976,7 +976,7 @@ public final class WorldRenderer {
         File chunkFile = new File(PathManager.getInstance().getWorldSavePath(worldProvider.getTitle()), worldProvider.getTitle() + ".chunks");
         final long time = System.currentTimeMillis();
         chunkStore.saveToFile(chunkFile);
-        logger.info("It took {} ms to save chunks to file {}", (System.currentTimeMillis() - time), chunkFile);
+        logger.info("Saved chunks to file {}, took {} ms", chunkFile, (System.currentTimeMillis() - time));
     }
 
     /**

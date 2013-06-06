@@ -95,7 +95,7 @@ public class Chunk {
 
     public Chunk(int x, int y, int z) {
         this.pos.set(x, y, z);
-        final Chunks c = Chunks.getInstance();
+        final ChunkDataRegistry c = ChunkDataRegistry.getInstance();
         this.blockData = c.getBlockDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         this.sunlightData = c.getSunlightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         this.lightData = c.getLightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
