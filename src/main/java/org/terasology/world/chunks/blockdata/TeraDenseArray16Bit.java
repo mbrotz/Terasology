@@ -6,6 +6,7 @@ import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 
+import org.terasology.protobuf.ChunksProtobuf.Type;
 import org.terasology.world.chunks.deflate.TeraVisitingDeflator;
 
 import com.google.common.base.Preconditions;
@@ -89,6 +90,11 @@ public class TeraDenseArray16Bit extends TeraDenseArray {
         @Override
         public TeraDenseArray16Bit create(int sizeX, int sizeY, int sizeZ) {
             return new TeraDenseArray16Bit(sizeX, sizeY, sizeZ);
+        }
+
+        @Override
+        public Type getProtobufType() {
+            return Type.DenseArray16Bit;
         }
     }
 

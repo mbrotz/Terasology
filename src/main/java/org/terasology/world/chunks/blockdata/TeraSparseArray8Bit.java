@@ -2,6 +2,7 @@ package org.terasology.world.chunks.blockdata;
 
 import java.util.Arrays;
 
+import org.terasology.protobuf.ChunksProtobuf.Type;
 import org.terasology.world.chunks.deflate.TeraVisitingDeflator;
 
 import com.google.common.base.Preconditions;
@@ -65,6 +66,11 @@ public final class TeraSparseArray8Bit extends TeraSparseArrayByte {
         @Override
         public TeraSparseArray8Bit create(int sizeX, int sizeY, int sizeZ) {
             return new TeraSparseArray8Bit(sizeX, sizeY, sizeZ);
+        }
+
+        @Override
+        public Type getProtobufType() {
+            return Type.SparseArray8Bit;
         }
     }
 

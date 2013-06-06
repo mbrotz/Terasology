@@ -45,12 +45,12 @@ public final class TeraArrays {
         
         lock.writeLock().lock();
         try {
-            register(new TeraDenseArray4Bit.Factory(), Type.DenseArray4Bit);
-            register(new TeraDenseArray8Bit.Factory(), Type.DenseArray8Bit);
-            register(new TeraDenseArray16Bit.Factory(), Type.DenseArray16Bit);
-            register(new TeraSparseArray4Bit.Factory(), Type.SparseArray4Bit);
-            register(new TeraSparseArray8Bit.Factory(), Type.SparseArray8Bit);
-            register(new TeraSparseArray16Bit.Factory(), Type.SparseArray16Bit);
+            register(new TeraDenseArray4Bit.Factory());
+            register(new TeraDenseArray8Bit.Factory());
+            register(new TeraDenseArray16Bit.Factory());
+            register(new TeraSparseArray4Bit.Factory());
+            register(new TeraSparseArray8Bit.Factory());
+            register(new TeraSparseArray16Bit.Factory());
         } finally {
             lock.writeLock().unlock();
         }
@@ -189,7 +189,9 @@ public final class TeraArrays {
         }
     }
     
-    public final void register(TeraArray.Factory factory, ChunksProtobuf.Type protobufType) {
+    public final void register(TeraArray.Factory factory) {
+        Preconditions.checkNotNull(factory, "The parameter 'factory' must not be null");
+        final Type protobufType = factory.getProtobufType();
         lock.writeLock().lock();
         try {
             final Entry entry = new Entry(factory, protobufType);
