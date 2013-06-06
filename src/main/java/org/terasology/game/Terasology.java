@@ -15,10 +15,11 @@
  */
 package org.terasology.game;
 
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.game.modes.StateMainMenu;
-import org.terasology.logic.manager.PathManager;
+import org.terasology.game.paths.PathManager;
+
+import java.io.File;
 
 /**
  * The heart and soul of Terasology.
@@ -29,21 +30,33 @@ import org.terasology.logic.manager.PathManager;
  * @author Kireev   Anton   <adeon.k87@gmail.com>
  */
 public final class Terasology {
-    private static TerasologyEngine engine = new TerasologyEngine();
-
-    private static final Logger logger = LoggerFactory.getLogger(Terasology.class);
+    private static final String HOME_ARG = "-homedir=";
+    private static final String LOCAL_ARG = "-homedir";
 
     private Terasology() {
     }
 
     public static void main(String[] args) {
         try {
-            PathManager.getInstance().determineRootPath(true);
+            File homePath = null;
+            for (String arg : args) {
+                if (arg.startsWith(HOME_ARG)) {
+                    homePath = new File(arg.substring(HOME_ARG.length()));
+                } else if (arg.equals(LOCAL_ARG)) {
+                    homePath = new File("").getAbsoluteFile();
+                }
+            }
+            if (homePath != null) {
+                PathManager.getInstance().useOverrideHomePath(homePath);
+            } else {
+                PathManager.getInstance().useDefaultHomePath();
+            }
+            TerasologyEngine engine = new TerasologyEngine();
             engine.init();
             engine.run(new StateMainMenu());
             engine.dispose();
         } catch (Throwable t) {
-            logger.error("Uncaught Exception", t);
+            LoggerFactory.getLogger(Terasology.class).error("Uncaught Exception", t);
         }
         System.exit(0);
     }

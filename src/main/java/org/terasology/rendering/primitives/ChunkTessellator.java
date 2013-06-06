@@ -21,10 +21,11 @@ import javax.vecmath.Vector3f;
 import javax.vecmath.Vector4f;
 
 import org.lwjgl.BufferUtils;
+import org.terasology.math.Direction;
 import org.terasology.math.Region3i;
 import org.terasology.math.Side;
 import org.terasology.math.Vector3i;
-import org.terasology.performanceMonitor.PerformanceMonitor;
+import org.terasology.monitoring.PerformanceMonitor;
 import org.terasology.world.MiniatureChunk;
 import org.terasology.world.WorldBiomeProvider;
 import org.terasology.world.WorldView;
@@ -42,6 +43,22 @@ public final class ChunkTessellator {
     private static int _statVertexArrayUpdateCount = 0;
 
     private WorldBiomeProvider biomeProvider;
+
+    public enum ChunkVertexFlags {
+        BLOCK_HINT_WATER(1),
+        BLOCK_HINT_LAVA(2),
+        BLOCK_HINT_GRASS(3),
+        BLOCK_HINT_WAVING(4),
+        BLOCK_HINT_WAVING_BLOCK(5);
+
+        private int value;
+        private ChunkVertexFlags(int value) {
+            this.value = value;
+        }
+        public int getValue() {
+            return value;
+        }
+    }
 
     public ChunkTessellator(WorldBiomeProvider biomeProvider) {
         this.biomeProvider = biomeProvider;
@@ -109,11 +126,12 @@ public final class ChunkTessellator {
 
         for (int j = 0; j < mesh._vertexElements.length; j++) {
             // Vertices double to account for light info
-            mesh._vertexElements[j].finalVertices = BufferUtils.createByteBuffer(mesh._vertexElements[j].vertices.size() * 2 * 4 + mesh._vertexElements[j].tex.size() * 4 + mesh._vertexElements[j].color.size() * 4 + mesh._vertexElements[j].normals.size() * 4);
+            mesh._vertexElements[j].finalVertices = BufferUtils.createByteBuffer(mesh._vertexElements[j].vertices.size() * 2 * 4 + mesh._vertexElements[j].tex.size() * 4 + mesh._vertexElements[j].flags.size() * 4 + mesh._vertexElements[j].color.size() * 4 + mesh._vertexElements[j].normals.size() * 4);
 
             int cTex = 0;
             int cColor = 0;
-            for (int i = 0; i < mesh._vertexElements[j].vertices.size(); i += 3, cTex += 3, cColor += 4) {
+            int cFlags = 0;
+            for (int i = 0; i < mesh._vertexElements[j].vertices.size(); i += 3, cTex += 2, cColor += 4, cFlags++) {
 
                 Vector3f vertexPos = new Vector3f(mesh._vertexElements[j].vertices.get(i), mesh._vertexElements[j].vertices.get(i + 1), mesh._vertexElements[j].vertices.get(i + 2));
 
@@ -123,7 +141,7 @@ public final class ChunkTessellator {
 
                 mesh._vertexElements[j].finalVertices.putFloat(mesh._vertexElements[j].tex.get(cTex));
                 mesh._vertexElements[j].finalVertices.putFloat(mesh._vertexElements[j].tex.get(cTex + 1));
-                mesh._vertexElements[j].finalVertices.putFloat(mesh._vertexElements[j].tex.get(cTex + 2));
+                mesh._vertexElements[j].finalVertices.putFloat(mesh._vertexElements[j].flags.get(cFlags));
 
                 float[] result = new float[3];
                 Vector3f normal = new Vector3f(mesh._vertexElements[j].normals.get(i), mesh._vertexElements[j].normals.get(i+1), mesh._vertexElements[j].normals.get(i+2));
@@ -162,21 +180,28 @@ public final class ChunkTessellator {
         Block[] blocks = new Block[4];
 
         PerformanceMonitor.startActivity("gatherLightInfo");
-        if (normal.y == 1.0f || normal.y == -1.0f) {
-            blocks[0] = worldView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z + 0.1f));
-            blocks[1] = worldView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z - 0.1f));
-            blocks[2] = worldView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z - 0.1f));
-            blocks[3] = worldView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z + 0.1f));
-        } else if (normal.x == 1.0f || normal.x == -1.0f) {
-            blocks[0] = worldView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y + 0.1f), (vertexPos.z + 0.1f));
-            blocks[1] = worldView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y + 0.1f), (vertexPos.z - 0.1f));
-            blocks[2] = worldView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y - 0.1f), (vertexPos.z - 0.1f));
-            blocks[3] = worldView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y - 0.1f), (vertexPos.z + 0.1f));
-        } else /*if (normal.z == 1.0f)*/ {
-            blocks[0] = worldView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.1f), (vertexPos.z + 0.8f * normal.z));
-            blocks[1] = worldView.getBlock((vertexPos.x + 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.8f * normal.z));
-            blocks[2] = worldView.getBlock((vertexPos.x - 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.8f * normal.z));
-            blocks[3] = worldView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.1f), (vertexPos.z + 0.8f * normal.z));
+        Direction dir = Direction.inDirection(normal);
+        switch (dir) {
+            case LEFT:
+            case RIGHT:
+                blocks[0] = worldView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y + 0.1f), (vertexPos.z + 0.1f));
+                blocks[1] = worldView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y + 0.1f), (vertexPos.z - 0.1f));
+                blocks[2] = worldView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y - 0.1f), (vertexPos.z - 0.1f));
+                blocks[3] = worldView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y - 0.1f), (vertexPos.z + 0.1f));
+                break;
+            case FORWARD:
+            case BACKWARD:
+                blocks[0] = worldView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.1f), (vertexPos.z + 0.8f * normal.z));
+                blocks[1] = worldView.getBlock((vertexPos.x + 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.8f * normal.z));
+                blocks[2] = worldView.getBlock((vertexPos.x - 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.8f * normal.z));
+                blocks[3] = worldView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.1f), (vertexPos.z + 0.8f * normal.z));
+                break;
+            default:
+                blocks[0] = worldView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z + 0.1f));
+                blocks[1] = worldView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z - 0.1f));
+                blocks[2] = worldView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z - 0.1f));
+                blocks[3] = worldView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z + 0.1f));
+                break;
         }
 
         lights[0] = worldView.getSunlight((vertexPos.x + 0.1f), (vertexPos.y + 0.8f), (vertexPos.z + 0.1f));
@@ -246,6 +271,18 @@ public final class ChunkTessellator {
 
     private void generateBlockVertices(WorldView view, ChunkMesh mesh, int x, int y, int z, float temp, float hum) {
         Block block = view.getBlock(x, y, z);
+        int vertexFlags = 0;
+
+        // TODO: Needs review since the new per-vertex flags introduce a lot of special scenarios
+        if (block.getURI().toString().equals("engine:water")) {
+            vertexFlags = ChunkVertexFlags.BLOCK_HINT_WATER.getValue();
+        } else if (block.getURI().toString().equals("engine:lava")) {
+            vertexFlags = ChunkVertexFlags.BLOCK_HINT_LAVA.getValue();
+        } else if (block.isWaving() && block.isDoubleSided()) {
+            vertexFlags = ChunkVertexFlags.BLOCK_HINT_WAVING.getValue();
+        } else if (block.isWaving() && !block.isDoubleSided()) {
+            vertexFlags = ChunkVertexFlags.BLOCK_HINT_WAVING_BLOCK.getValue();
+        }
 
         /*
          * Determine the render process.
@@ -262,7 +299,7 @@ public final class ChunkTessellator {
 
         if (block.getMeshPart(BlockPart.CENTER) != null) {
             Vector4f colorOffset = block.calcColorOffsetFor(BlockPart.CENTER, temp, hum);
-            block.getMeshPart(BlockPart.CENTER).appendTo(mesh, x, y, z, colorOffset, renderType.getIndex());
+            block.getMeshPart(BlockPart.CENTER).appendTo(mesh, x, y, z, colorOffset, renderType.getIndex(), vertexFlags);
         }
 
         boolean[] drawDir = new boolean[6];
@@ -299,7 +336,7 @@ public final class ChunkTessellator {
                 for (Side dir : Side.values()) {
                     if (drawDir[dir.ordinal()]) {
                         Vector4f colorOffset = block.calcColorOffsetFor(BlockPart.fromSide(dir), temp, hum);
-                        block.getLoweredLiquidMesh(dir).appendTo(mesh, x, y, z, colorOffset, renderType.getIndex());
+                        block.getLoweredLiquidMesh(dir).appendTo(mesh, x, y, z, colorOffset, renderType.getIndex(), vertexFlags);
                     }
                 }
                 return;
@@ -309,7 +346,14 @@ public final class ChunkTessellator {
         for (Side dir : Side.values()) {
             if (drawDir[dir.ordinal()]) {
                 Vector4f colorOffset = block.calcColorOffsetFor(BlockPart.fromSide(dir), temp, hum);
-                block.getMeshPart(BlockPart.fromSide(dir)).appendTo(mesh, x, y, z, colorOffset, renderType.getIndex());
+
+                // TODO: Needs review since the new per-vertex flags introduce a lot of special scenarios
+                // Don't mask grass on the top or bottom side...
+                if (block.getURI().toString().equals("engine:grass")) {
+                    vertexFlags = (dir != Side.TOP && dir != Side.BOTTOM) ? ChunkVertexFlags.BLOCK_HINT_GRASS.getValue() : 0;
+                }
+
+                block.getMeshPart(BlockPart.fromSide(dir)).appendTo(mesh, x, y, z, colorOffset, renderType.getIndex(), vertexFlags);
             }
         }
     }
@@ -326,6 +370,9 @@ public final class ChunkTessellator {
 
         // Liquids can be transparent but there should be no visible adjacent faces
         if (currentBlock.isLiquid() && blockToCheck.isLiquid()) return false;
+
+        // Draw faces adjacent to animated blocks (which are of different types)
+        //if (blockToCheck.isWaving() && !blockToCheck.isDoubleSided() && currentBlock.getId() != blockToCheck.getId()) return true;
 
         return blockToCheck.getId() == 0x0 ||
                 !blockToCheck.isFullSide(side.reverse()) ||

@@ -18,23 +18,13 @@ package org.terasology.world.block.loader;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
-import com.google.gson.JsonParser;
-import com.google.gson.TypeAdapter;
-import com.google.gson.TypeAdapterFactory;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
-import org.codehaus.groovy.tools.groovydoc.SimpleGroovyExecutableMemberDoc;
 import org.newdawn.slick.opengl.PNGDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +32,7 @@ import org.terasology.asset.AssetManager;
 import org.terasology.asset.AssetType;
 import org.terasology.asset.AssetUri;
 import org.terasology.asset.Assets;
-import org.terasology.logic.manager.PathManager;
+import org.terasology.game.paths.PathManager;
 import org.terasology.math.Rotation;
 import org.terasology.math.Side;
 import org.terasology.math.TeraMath;
@@ -50,12 +40,10 @@ import org.terasology.rendering.assets.Material;
 import org.terasology.rendering.assets.Texture;
 import org.terasology.utilities.gson.Vector4fHandler;
 import org.terasology.world.block.Block;
+import org.terasology.world.block.BlockAdjacentType;
 import org.terasology.world.block.BlockPart;
 import org.terasology.world.block.BlockUri;
-import org.terasology.world.block.family.AlignToSurfaceFamily;
-import org.terasology.world.block.family.BlockFamily;
-import org.terasology.world.block.family.HorizontalBlockFamily;
-import org.terasology.world.block.family.SymmetricFamily;
+import org.terasology.world.block.family.*;
 import org.terasology.world.block.shapes.BlockShape;
 
 import javax.imageio.ImageIO;
@@ -103,12 +91,12 @@ public class BlockLoader {
     public BlockLoader() {
         parser = new JsonParser();
         gson = new GsonBuilder()
-                .registerTypeAdapterFactory(new CaseInsensitiveEnumTypeAdapterFactory())
-                .registerTypeAdapter(BlockDefinition.Tiles.class, new BlockTilesDefinitionHandler())
-                .registerTypeAdapter(BlockDefinition.ColorSources.class, new BlockColorSourceDefinitionHandler())
-                .registerTypeAdapter(BlockDefinition.ColorOffsets.class, new BlockColorOffsetDefinitionHandler())
-                .registerTypeAdapter(Vector4f.class, new Vector4fHandler())
-                .create();
+            .registerTypeAdapterFactory(new CaseInsensitiveEnumTypeAdapterFactory())
+            .registerTypeAdapter(BlockDefinition.Tiles.class, new BlockTilesDefinitionHandler())
+            .registerTypeAdapter(BlockDefinition.ColorSources.class, new BlockColorSourceDefinitionHandler())
+            .registerTypeAdapter(BlockDefinition.ColorOffsets.class, new BlockColorOffsetDefinitionHandler())
+            .registerTypeAdapter(Vector4f.class, new Vector4fHandler())
+            .create();
         cubeShape = (BlockShape) Assets.get(new AssetUri(AssetType.SHAPE, "engine:cube"));
         loweredShape = (BlockShape) Assets.get(new AssetUri(AssetType.SHAPE, "engine:loweredCube"));
         trimmedLoweredShape = (BlockShape) Assets.get(new AssetUri(AssetType.SHAPE, "engine:trimmedLoweredCube"));
@@ -157,7 +145,9 @@ public class BlockLoader {
                                 case HORIZONTAL:
                                     result.families.add(processHorizontalBlockFamily(blockDefUri, blockDef));
                                     break;
-
+                                case CONNECTTOADJACENT:
+                                    result.families.add(processConnectToAdjacentFamily(blockDefUri, blockDefJson));
+                                    break;
                                 default:
                                     result.families.add(processSingleBlockFamily(blockDefUri, blockDef));
                                     break;
@@ -217,7 +207,7 @@ public class BlockLoader {
             BufferedImage image = generateAtlas(i);
             if (i == 0) {
                 try {
-                    ImageIO.write(image, "png", new File(PathManager.getInstance().getScreensPath(), "tiles.png"));
+                    ImageIO.write(image, "png", new File(PathManager.getInstance().getScreenshotPath(), "tiles.png"));
                 } catch (IOException e) {
                     logger.warn("Failed to write atlas");
                 }
@@ -229,7 +219,7 @@ public class BlockLoader {
                 ImageIO.write(image, "png", bos);
                 PNGDecoder decoder = new PNGDecoder(new ByteArrayInputStream(bos.toByteArray()));
                 ByteBuffer buf = ByteBuffer.allocateDirect(4 * decoder.getWidth() * decoder.getHeight());
-                decoder.decode(buf, decoder.getWidth() * 4, PNGDecoder.RGBA);
+                decoder.decode(buf, decoder.getWidth() * 4, PNGDecoder.Format.RGBA);
                 buf.flip();
                 data[i] = buf;
             } catch (IOException e) {
@@ -366,6 +356,43 @@ public class BlockLoader {
         return new AlignToSurfaceFamily(new BlockUri(blockDefUri.getPackage(), blockDefUri.getAssetName()), blockMap, categories);
     }
 
+    private BlockFamily processConnectToAdjacentFamily(AssetUri blockDefUri, JsonObject blockDefJson) {
+        Map<BlockAdjacentType, EnumMap<Side, Block> > blockMap = Maps.newEnumMap(BlockAdjacentType.class);
+        String[] categories = new String[0];
+
+        if ( blockDefJson.has("types") ){
+
+            JsonArray blockTypes = blockDefJson.getAsJsonArray("types");
+
+            blockDefJson.remove("types");
+
+            for ( JsonElement element : blockTypes.getAsJsonArray() ){
+                JsonObject typeDefJson = element.getAsJsonObject();
+
+                if ( !typeDefJson.has("type") ){
+                    throw new IllegalArgumentException("Block type is empty");
+                }
+                BlockAdjacentType type = gson.fromJson(typeDefJson.get("type"), BlockAdjacentType.class);
+
+                if ( type == null ){
+                    throw new IllegalArgumentException("Invalid type block: " + gson.fromJson(typeDefJson.get("type"), String.class));
+                }
+
+                if ( !blockMap.containsKey(type) ){
+                    blockMap.put( type, Maps.<Side, Block>newEnumMap(Side.class));
+                }
+
+                typeDefJson.remove("type");
+                mergeJsonInto(blockDefJson, typeDefJson);
+                BlockDefinition typeDef = loadBlockDefinition(typeDefJson);
+                constructHorizontalBlocks( blockDefUri, typeDef, blockMap.get(type) );
+
+
+            }
+        }
+        return  new ConnectToAdjacentBlockFamily(new BlockUri(blockDefUri.getPackage(), blockDefUri.getAssetName()), blockMap,  categories);
+    }
+
     private void mergeJsonInto(JsonObject from, JsonObject to) {
         for (Map.Entry<String, JsonElement> entry : from.entrySet()) {
             if (entry.getValue().isJsonObject()) {
@@ -415,6 +442,28 @@ public class BlockLoader {
     }
 
     private void constructHorizontalBlocks(AssetUri blockDefUri, BlockDefinition blockDef, Map<Side, Block> blockMap) {
+        Map<BlockPart, AssetUri> tileUris = prepareTiles(blockDef, blockDefUri);
+        Map<BlockPart, Block.ColorSource> colorSourceMap = prepareColorSources(blockDef);
+        Map<BlockPart, Vector4f> colorOffsetsMap = prepareColorOffsets(blockDef);
+        BlockShape shape = getShape(blockDef);
+
+        for (Rotation rot : Rotation.horizontalRotations()) {
+            Block block = createRawBlock(blockDef, properCase(blockDefUri.getAssetName()));
+
+            block.setDirection(rot.rotate(Side.FRONT));
+
+            applyShape(block, shape, tileUris, rot);
+
+            for (BlockPart part : BlockPart.values()) {
+                block.setColorSource(part, colorSourceMap.get(part));
+                block.setColorOffset(part, colorOffsetsMap.get(part));
+            }
+
+            blockMap.put(rot.rotate(Side.FRONT), block);
+        }
+    }
+
+    private void constructConnectToAdjacentBlocks(AssetUri blockDefUri, BlockDefinition blockDef, Map<Side, Block> blockMap) {
         Map<BlockPart, AssetUri> tileUris = prepareTiles(blockDef, blockDefUri);
         Map<BlockPart, Block.ColorSource> colorSourceMap = prepareColorSources(blockDef);
         Map<BlockPart, Vector4f> colorOffsetsMap = prepareColorOffsets(blockDef);
@@ -507,6 +556,7 @@ public class BlockLoader {
     private Block createRawBlock(BlockDefinition def, String defaultName) {
         Block block = new Block();
         block.setLiquid(def.liquid);
+        block.setClimbable(def.climbable);
         block.setHardness(def.hardness);
         block.setAttachmentAllowed(def.attachmentAllowed);
         block.setReplacementAllowed(def.replacementAllowed);
@@ -520,11 +570,15 @@ public class BlockLoader {
         block.setWaving(def.waving);
         block.setLuminance(def.luminance);
         block.setCraftPlace(def.craftPlace);
+        block.setConnectToAllBlocks(def.connectToAllBlock);
+        block.setCheckHeightDiff(def.checkHeightDiff);
         if (!def.displayName.isEmpty()) {
             block.setDisplayName(def.displayName);
         } else {
             block.setDisplayName(properCase(defaultName));
         }
+
+        block.setAcceptedToConnectBlocks(def.acceptedToConnectBlocks);
 
         block.setMass(def.mass);
         block.setDebrisOnDestroy(def.debrisOnDestroy);
@@ -537,6 +591,12 @@ public class BlockLoader {
         if (def.inventory != null) {
             block.setStackable(def.inventory.stackable);
             block.setDirectPickup(def.inventory.directPickup);
+            if (!def.inventory.pickupFamily.isEmpty()) {
+                BlockUri uri = new BlockUri(def.inventory.pickupFamily);
+                if (uri.isValid()) {
+                    block.setPickupBlockFamily(uri);
+                }
+            }
         }
 
         return block;
@@ -717,6 +777,7 @@ public class BlockLoader {
     }
 
     public static class CaseInsensitiveEnumTypeAdapterFactory implements TypeAdapterFactory {
+        @Override
         public <T> TypeAdapter<T> create(Gson gson, TypeToken<T> type) {
             Class<T> rawType = (Class<T>) type.getRawType();
             if (!rawType.isEnum()) {

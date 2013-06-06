@@ -19,10 +19,9 @@ uniform sampler2D diffuse;
 uniform float light;
 uniform vec3 colorOffset;
 uniform bool textured;
-uniform bool carryingTorch;
 
 varying vec3 normal;
-varying vec4 vertexWorldPos;
+varying vec4 vertexViewPos;
 
 void main(){
     vec4 color;
@@ -36,17 +35,19 @@ void main(){
     float torchlight = 0.0;
 
     // Apply torchlight
-    if (carryingTorch)
-        torchlight = calcTorchlight(calcLambLight(normal, -normalize(vertexWorldPos.xyz)), vertexWorldPos.xyz);
+    if (carryingTorch > 0.99)
+        torchlight = calcTorchlight(calcLambLight(normal, -normalize(vertexViewPos.xyz)), vertexViewPos.xyz);
 
     // Apply light
     float lightValue = expLightValue(light);
-    color.rgb *= clamp(lightValue + torchlight, 0.0, 1.0);
+    color.rgb *= lightValue + torchlight;
 
     if (textured) {
         color.rgb *= colorOffset.rgb;
-        gl_FragColor = color;
+        gl_FragData[0].rgba = color;
     } else {
-        gl_FragColor = color;
+        gl_FragData[0].rgba = color;
     }
+
+    gl_FragData[1].rgba = vec4(normal.x / 2.0 + 0.5, normal.y / 2.0 + 0.5, normal.z / 2.0 + 0.5, 0.0f);
 }

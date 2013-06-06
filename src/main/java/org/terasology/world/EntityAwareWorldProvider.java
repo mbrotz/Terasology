@@ -32,7 +32,7 @@ import org.terasology.entitySystem.event.ChangedComponentEvent;
 import org.terasology.entitySystem.event.RemovedComponentEvent;
 import org.terasology.math.Region3i;
 import org.terasology.math.Vector3i;
-import org.terasology.performanceMonitor.PerformanceMonitor;
+import org.terasology.monitoring.PerformanceMonitor;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.BlockComponent;
 import org.terasology.world.block.BlockEntityMode;
@@ -163,13 +163,31 @@ public class EntityAwareWorldProvider extends AbstractWorldProviderDecorator imp
     }
 
     @Override
+    public boolean setBlockRetainEntity(int x, int y, int z, Block type, Block oldType) {
+        return setBlockRetainEntity(new Vector3i(x, y, z), type, oldType);
+    }
+
+    @Override
+    public boolean setBlockRetainEntity(Vector3i pos, Block type, Block oldType) {
+        if (super.setBlock(pos.x, pos.y, pos.z, type, oldType)) {
+            if (Thread.currentThread().equals(mainThread)) {
+                getOrCreateEntityAt(pos).send(new BlockChangedEvent(pos, type, oldType));
+            } else {
+                eventQueue.add(new BlockChangedEvent(pos, type, oldType));
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public boolean setBlock(int x, int y, int z, Block type, Block oldType, EntityRef entity) {
         return setBlock(new Vector3i(x, y, z), type, oldType, entity);
     }
 
     @Override
     public boolean setBlock(Vector3i pos, Block type, Block oldType, EntityRef entity) {
-        if (super.setBlock(pos.x, pos.y, pos.z, type, oldType)) {
+        if (setBlock(pos.x, pos.y, pos.z, type, oldType)) {
             replaceEntityAt(pos, entity, type);
             return true;
         }

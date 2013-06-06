@@ -71,7 +71,7 @@ import org.terasology.logic.manager.ShaderManager;
 import org.terasology.logic.manager.VertexBufferObjectManager;
 import org.terasology.math.AABB;
 import org.terasology.math.TeraMath;
-import org.terasology.performanceMonitor.PerformanceMonitor;
+import org.terasology.monitoring.PerformanceMonitor;
 import org.terasology.rendering.assets.Material;
 import org.terasology.rendering.primitives.Mesh;
 import org.terasology.rendering.primitives.Tessellator;
@@ -193,9 +193,7 @@ public class MeshRenderer implements RenderSystem, EventHandlerSystem {
         }
     }
 
-    @Override
-    public void renderOpaque() {
-        boolean carryingTorch = CoreRegistry.get(LocalPlayer.class).isCarryingTorch();
+    public void render(boolean shadows) {
         Vector3f cameraPosition = worldRenderer.getActiveCamera().getPosition();
 
         Quat4f worldRot = new Quat4f();
@@ -206,14 +204,31 @@ public class MeshRenderer implements RenderSystem, EventHandlerSystem {
         Transform normTrans = new Transform();
 
         glPushMatrix();
-        glTranslated(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
+
+        if (!shadows) {
+            glTranslated(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
+        } else {
+            Vector3f lightCamPos = worldRenderer.getLightCamera().getPosition();
+            glTranslated(-lightCamPos.x, -lightCamPos.y, -lightCamPos.z);
+        }
 
         for (Material material : opaqueMesh.keys()) {
             Mesh lastMesh = null;
-            material.enable();
-            material.setInt("carryingTorch", carryingTorch ? 1 : 0);
-            material.setFloat("light", 1);
-            material.bindTextures();
+            if (!shadows) {
+                material.enable();
+                material.setFloat("light", 1);
+
+                LocalPlayer localPlayer = CoreRegistry.get(LocalPlayer.class);
+                if (localPlayer != null) {
+                    material.setFloat("carryingTorch", localPlayer.isCarryingTorch() ? 1.0f : 0.0f);
+                }
+
+                material.bindTextures();
+            } else {
+                ShaderProgram shader = ShaderManager.getInstance().getShaderProgram("shadowMap");
+                shader.enable();
+
+            }
             lastRendered = opaqueMesh.get(material).size();
 
             // Batching
@@ -244,7 +259,16 @@ public class MeshRenderer implements RenderSystem, EventHandlerSystem {
                     matrix.set(worldRot, worldPos, worldScale);
                     trans.set(matrix);
                     AABB aabb = meshComp.mesh.getAABB().transform(trans);
-                    if (worldRenderer.isAABBVisible(aabb)) {
+
+                    boolean visible;
+
+                    if (shadows) {
+                        visible = worldRenderer.isAABBVisibleLight(aabb);
+                    } else {
+                        visible = worldRenderer.isAABBVisible(aabb);
+                    }
+
+                    if (visible) {
                         if (meshComp.mesh != lastMesh) {
                             if (lastMesh != null) {
                                 lastMesh.postRender();
@@ -279,7 +303,15 @@ public class MeshRenderer implements RenderSystem, EventHandlerSystem {
                     normTrans.set(matrix);
                     AABB aabb = meshComp.mesh.getAABB().transform(trans);
 
-                    if (worldRenderer.isAABBVisible(aabb)) {
+                    boolean visible;
+
+                    if (shadows) {
+                        visible = worldRenderer.isAABBVisibleLight(aabb);
+                    } else {
+                        visible = worldRenderer.isAABBVisible(aabb);
+                    }
+
+                    if (visible) {
                         indexOffset = meshComp.mesh.addToBatch(trans, normTrans, vertexData, indexData, indexOffset);
                     }
 
@@ -336,6 +368,11 @@ public class MeshRenderer implements RenderSystem, EventHandlerSystem {
         }*/
     }
 
+    @Override
+    public void renderOpaque() {
+        render(false);
+    }
+
     private void renderBatch(TFloatList vertexData, TIntList indexData) {
         if (vertexData.size() == 0 || indexData.size() == 0) return;
 
@@ -389,5 +426,10 @@ public class MeshRenderer implements RenderSystem, EventHandlerSystem {
 
     @Override
     public void renderFirstPerson() {
+    }
+
+    @Override
+    public void renderShadows() {
+        //render(true);
     }
 }

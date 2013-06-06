@@ -15,16 +15,18 @@
  */
 package org.terasology.rendering.cameras;
 
+import org.terasology.config.Config;
+import org.terasology.game.CoreRegistry;
+import org.terasology.model.structures.ViewFrustum;
+
+import javax.vecmath.Matrix4f;
+import javax.vecmath.Vector3f;
+
 import static org.lwjgl.opengl.GL11.glScalef;
 import static org.lwjgl.opengl.GL11.glTranslatef;
 
-import javax.vecmath.Vector3f;
-
-import org.terasology.logic.manager.Config;
-import org.terasology.model.structures.ViewFrustum;
-
 /**
- * Provides global access to fonts.
+ * Camera base class.
  *
  * @author Benjamin Glatzel <benjamin.glatzel@me.com>
  */
@@ -35,12 +37,21 @@ public abstract class Camera {
     protected final Vector3f _up = new Vector3f(0, 1, 0);
     protected final Vector3f _viewingDirection = new Vector3f(1, 0, 0);
 
-    protected float _targetFov = Config.getInstance().getFov();
-    protected float _activeFov = Config.getInstance().getFov() / 4f;
+    protected float _targetFov = CoreRegistry.get(Config.class).getRendering().getFieldOfView();
+    protected float _activeFov = _targetFov / 4f;
 
     /* VIEW FRUSTUM */
     protected final ViewFrustum _viewFrustum = new ViewFrustum();
 
+    /* MATRICES */
+    protected Matrix4f _projectionMatrix = new Matrix4f();
+    protected Matrix4f _normViewMatrix = new Matrix4f();
+    protected Matrix4f _viewMatrix = new Matrix4f();
+    protected Matrix4f _viewProjectionMatrix = new Matrix4f();
+    protected Matrix4f _inverseViewProjectionMatrix = new Matrix4f();
+    protected Matrix4f _prevViewProjectionMatrix = new Matrix4f();
+
+    /* ETC */
     protected boolean _reflected = false;
 
     /**
@@ -69,15 +80,15 @@ public abstract class Camera {
         }
     }
 
-    public abstract void loadProjectionMatrix(float fov);
-
-    public void loadProjectionMatrix() {
-        loadProjectionMatrix(_activeFov);
-    }
+    public abstract void loadProjectionMatrix();
 
     public abstract void loadModelViewMatrix();
 
     public abstract void loadNormalizedModelViewMatrix();
+
+    public abstract void updateMatrices();
+
+    public abstract void updateMatrices(float overrideFov);
 
     public Vector3f getPosition() {
         return _position;
@@ -115,11 +126,11 @@ public abstract class Camera {
     }
 
     public void extendFov(float fov) {
-        _targetFov = Config.getInstance().getFov() + fov;
+        _targetFov = CoreRegistry.get(Config.class).getRendering().getFieldOfView() + fov;
     }
 
     public void resetFov() {
-        _targetFov = Config.getInstance().getFov();
+        _targetFov = CoreRegistry.get(Config.class).getRendering().getFieldOfView();
     }
 
     public void setReflected(boolean reflected) {
@@ -127,8 +138,26 @@ public abstract class Camera {
     }
 
     public float getClipHeight() {
-        if (_reflected)
-            return 31.5f;
-        return 0;
+        return 31.5f;
+    }
+
+    public Matrix4f getViewMatrix() {
+        return _viewMatrix;
+    }
+
+    public Matrix4f getProjectionMatrix() {
+        return _projectionMatrix;
+    }
+
+    public Matrix4f getViewProjectionMatrix() {
+        return _viewProjectionMatrix;
+    }
+
+    public Matrix4f getInverseViewProjectionMatrix() {
+        return _inverseViewProjectionMatrix;
+    }
+
+    public Matrix4f getPrevViewProjectionMatrix() {
+        return _prevViewProjectionMatrix;
     }
 }

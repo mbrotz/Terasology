@@ -35,14 +35,18 @@ import org.terasology.entitySystem.ReceiveEvent;
 import org.terasology.entitySystem.RegisterComponentSystem;
 import org.terasology.entitySystem.event.RemovedComponentEvent;
 import org.terasology.events.FootstepEvent;
+import org.terasology.events.FromLiquidEvent;
 import org.terasology.events.HorizontalCollisionEvent;
+import org.terasology.events.IntoLiquidEvent;
 import org.terasology.events.JumpEvent;
+import org.terasology.events.SwimEvent;
 import org.terasology.events.VerticalCollisionEvent;
 import org.terasology.math.Vector3fUtil;
 import org.terasology.physics.BulletPhysics;
 import org.terasology.physics.CollisionGroup;
 import org.terasology.physics.MovedEvent;
 import org.terasology.world.WorldProvider;
+import org.terasology.world.block.Block;
 
 import javax.vecmath.AxisAngle4f;
 import javax.vecmath.Matrix4f;
@@ -51,6 +55,7 @@ import javax.vecmath.Vector3f;
 
 /**
  * @author Immortius <immortius@gmail.com>
+ * @author Esa-Petri Tirkkonen <esereja@yahoo.co.uk>
  */
 @RegisterComponentSystem
 public final class BulletCharacterMovementSystem implements UpdateSubscriberSystem, EventHandlerSystem {
@@ -76,6 +81,7 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
     public static final float TERMINAL_VELOCITY = 64.0f;
 
     public static final float UNDERWATER_GRAVITY = 0.25f;
+    public static final float CLIMB_GRAVITY      = 0.35f;
     public static final float UNDERWATER_INERTIA = 2.0f;
     public static final float WATER_TERMINAL_VELOCITY = 4.0f;
 
@@ -134,7 +140,8 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
             }
 
             updatePosition(delta, entity, location, movementComp);
-            updateSwimStatus(location, movementComp);
+            updateSwimStatus(entity, location,  movementComp);
+            updateClimbingStatus(location,  movementComp);
 
             entity.saveComponent(location);
             entity.saveComponent(movementComp);
@@ -148,7 +155,7 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
      * @param location
      * @param movementComp
      */
-    private void updateSwimStatus(LocationComponent location, CharacterMovementComponent movementComp) {
+    private void updateSwimStatus(final EntityRef entity,LocationComponent location, CharacterMovementComponent movementComp) {
         Vector3f worldPos = location.getWorldPosition();
         boolean topUnderwater = false;
         boolean bottomUnderwater = false;
@@ -158,7 +165,8 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
         bottom.y -= 0.25f * movementComp.height;
 
         topUnderwater = worldProvider.getBlock(top).isLiquid();
-        bottomUnderwater = worldProvider.getBlock(bottom).isLiquid();
+        final Block bottomBlock= worldProvider.getBlock(bottom);
+        bottomUnderwater = bottomBlock.isLiquid();
         boolean newSwimming = topUnderwater && bottomUnderwater;
 
         // Boost when leaving water
@@ -166,7 +174,42 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
             float len = movementComp.getVelocity().length();
             movementComp.getVelocity().scale((len + 8) / len);
         }
+        if(movementComp.isSwimming != newSwimming){
+            if (movementComp.isSwimming) {
+                entity.send(new FromLiquidEvent(bottomBlock, worldPos));
+            } else {
+                entity.send(new IntoLiquidEvent(bottomBlock, worldPos));
+            }
+        }
         movementComp.isSwimming = newSwimming;
+    }
+
+    private void updateClimbingStatus(LocationComponent location, CharacterMovementComponent movementComp) {
+        Vector3f worldPos = location.getWorldPosition();
+
+        Vector3f[] sides = { new Vector3f(worldPos), new Vector3f(worldPos), new Vector3f(worldPos), new Vector3f(worldPos), new Vector3f(worldPos)};
+
+        float factor = 0.18f;
+        boolean isClimbing = false;
+
+        sides[0].x   += factor * movementComp.radius;
+        sides[1].x  -= factor * movementComp.radius;
+        sides[2].z   += factor * movementComp.radius;
+        sides[3].z  -= factor * movementComp.radius;
+        sides[4].y  -= movementComp.height;
+
+        for ( Vector3f side : sides ){
+            if ( worldProvider.getBlock(side).isClimbable() ){
+                isClimbing = true;
+                break;
+            }
+        }
+
+        if ( movementComp.isClimbing && !isClimbing ){
+            movementComp.getDrive().y = 0;
+        }
+
+        movementComp.isClimbing = isClimbing;
     }
 
     private void updatePosition(final float delta, final EntityRef entity, final LocationComponent location, final CharacterMovementComponent movementComp) {
@@ -174,9 +217,80 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
             ghost(delta, entity, location, movementComp);
         } else if (movementComp.isSwimming) {
             swim(delta, entity, location, movementComp);
-        } else {
+        } else if ( movementComp.isClimbing ) {
+            climb(delta, entity, location, movementComp);
+        }else{
             walk(delta, entity, location, movementComp);
         }
+    }
+
+    private void climb(float delta, EntityRef entity, LocationComponent location, CharacterMovementComponent movementComp) {
+        Vector3f desiredVelocity = new Vector3f(movementComp.getDrive());
+        float maxSpeed = movementComp.maxClimbSpeed;
+        if (movementComp.isRunning) {
+            maxSpeed *= movementComp.runFactor;
+        }
+        desiredVelocity.scale(maxSpeed);
+
+        desiredVelocity.y -= CLIMB_GRAVITY;
+
+        Vector3f velocityDiff = new Vector3f(desiredVelocity);
+        velocityDiff.sub(movementComp.getVelocity());
+
+        movementComp.getVelocity().x += velocityDiff.x;
+        movementComp.getVelocity().y += velocityDiff.y;
+        movementComp.getVelocity().z += velocityDiff.z;
+        Vector3f moveDelta = new Vector3f(movementComp.getVelocity());
+        moveDelta.scale(delta);
+
+        steppedUpDist = 0;
+        stepped = false;
+
+        MoveResult result = new MoveResult();
+        Vector3f positionX = new Vector3f(location.getWorldPosition());
+        Vector3f positionZ = new Vector3f(location.getWorldPosition());
+        result.finalPosition = new Vector3f(location.getWorldPosition());
+
+        result.hitHoriz = moveHorizontal(new Vector3f(moveDelta.x, 0, 0), movementComp.collider, positionX, -1, 0);
+
+        if ( result.hitHoriz ){
+            moveDelta.y += moveDelta.x;
+        }else{
+            result.finalPosition.x = positionX.x;
+        }
+
+        result.hitHoriz = moveHorizontal(new Vector3f(0, 0, moveDelta.z), movementComp.collider, positionZ, -1, 0);
+
+        if ( result.hitHoriz ){
+            moveDelta.y += moveDelta.z;
+        }else{
+            result.finalPosition.z = positionZ.z;
+        }
+
+        if (moveDelta.y > 0) {
+            result.hitTop = moveDelta.y - moveUp(moveDelta.y, movementComp.collider, result.finalPosition) > BulletGlobals.SIMD_EPSILON;
+        }
+
+        if (moveDelta.y < 0 || steppedUpDist > 0) {
+            float dist = (moveDelta.y < 0) ? moveDelta.y : 0;
+            dist -= steppedUpDist;
+            result.hitBottom = moveDown(dist, -1, movementComp.collider, result.finalPosition);
+        }
+
+
+        Vector3f distanceMoved = new Vector3f(result.finalPosition);
+        distanceMoved.sub(location.getWorldPosition());
+
+        location.setWorldPosition(result.finalPosition);
+
+        movementComp.collider.setWorldTransform(new Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), result.finalPosition, 1.0f)));
+
+        if (movementComp.faceMovementDirection && distanceMoved.lengthSquared() > 0.01f) {
+            float yaw = (float) Math.atan2(distanceMoved.x, distanceMoved.z);
+            AxisAngle4f axisAngle = new AxisAngle4f(0, 1, 0, yaw);
+            location.getLocalRotation().set(axisAngle);
+        }
+
     }
 
     private void swim(float delta, EntityRef entity, LocationComponent location, CharacterMovementComponent movementComp) {
@@ -208,14 +322,23 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
         moveDelta.scale(delta);
 
         // Note: No stepping underwater, no issue with slopes
-        MoveResult moveResult = move(location.getWorldPosition(), moveDelta, 0, -1, movementComp.collider);
+        MoveResult moveResult = move(location.getWorldPosition(), moveDelta, 0, 0.1f, movementComp.collider);
         Vector3f distanceMoved = new Vector3f(moveResult.finalPosition);
         distanceMoved.sub(location.getWorldPosition());
 
         location.setWorldPosition(moveResult.finalPosition);
-        if (distanceMoved.length() > 0)
+        if (distanceMoved.length() > 0){
             entity.send(new MovedEvent(distanceMoved, moveResult.finalPosition));
-
+            
+            Vector3f top = new Vector3f(location.getWorldPosition());
+            Vector3f bottom = new Vector3f(top);
+            top.y += 0.25f * movementComp.height;
+            bottom.y -= 0.25f * movementComp.height;
+            if(worldProvider.getBlock(top).isLiquid() && speed > movementComp.maxWaterSpeed/4){
+            	entity.send(new SwimEvent(worldProvider.getBlock(bottom),location.getWorldPosition()));
+            }
+        }
+        
         movementComp.collider.setWorldTransform(new Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), moveResult.finalPosition, 1.0f)));
 
         if (movementComp.faceMovementDirection && distanceMoved.lengthSquared() > 0.01f) {
@@ -248,8 +371,9 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
         deltaPos.scale(delta);
         worldPos.add(deltaPos);
         location.setWorldPosition(worldPos);
-        if (deltaPos.length() > 0)
+        if (deltaPos.length() > 0) {
             entity.send(new MovedEvent(deltaPos, worldPos));
+        }
 
         movementComp.collider.setWorldTransform(new Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), worldPos, 1.0f)));
 
@@ -291,13 +415,15 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
         Vector3f moveDelta = new Vector3f(movementComp.getVelocity());
         moveDelta.scale(delta);
 
-        MoveResult moveResult = move(location.getWorldPosition(), moveDelta, (movementComp.isGrounded) ? movementComp.stepHeight : 0, movementComp.slopeFactor, movementComp.collider);
+        MoveResult moveResult = move(location.getWorldPosition(), moveDelta, (movementComp.isGrounded) ? movementComp.stepHeight : 0, movementComp.slopeFactor,
+                movementComp.collider);
         Vector3f distanceMoved = new Vector3f(moveResult.finalPosition);
         distanceMoved.sub(location.getWorldPosition());
 
         location.setWorldPosition(moveResult.finalPosition);
-        if (distanceMoved.length() > 0)
+        if (distanceMoved.length() > 0) {
             entity.send(new MovedEvent(distanceMoved, moveResult.finalPosition));
+        }
 
         movementComp.collider.setWorldTransform(new Transform(new Matrix4f(new Quat4f(0, 0, 0, 1), moveResult.finalPosition, 1.0f)));
 
@@ -323,7 +449,7 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
         }
 
         if (moveResult.hitHoriz) {
-            entity.send(new HorizontalCollisionEvent(location.getWorldPosition(),movementComp.getVelocity()));
+            entity.send(new HorizontalCollisionEvent(movementComp.getVelocity(),location.getWorldPosition()));
         }
 
         if (movementComp.isGrounded) {
@@ -343,9 +469,14 @@ public final class BulletCharacterMovementSystem implements UpdateSubscriberSyst
 
     private static class MoveResult {
         public Vector3f finalPosition;
-        public boolean hitHoriz = false;
-        public boolean hitBottom = false;
-        public boolean hitTop = false;
+        public boolean  hitHoriz  = false;
+        public boolean  hitBottom = false;
+        public boolean  hitTop    = false;
+
+        public MoveResult() {
+
+        }
+
     }
 
     private MoveResult move(Vector3f startPosition, Vector3f moveDelta, float stepHeight, float slopeFactor, PairCachingGhostObject collider) {

@@ -20,8 +20,15 @@ import com.bulletphysics.linearmath.QuaternionUtil;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.lwjgl.input.Keyboard;
-import org.terasology.asset.*;
-import org.terasology.components.*;
+import org.terasology.asset.Asset;
+import org.terasology.asset.AssetType;
+import org.terasology.asset.AssetUri;
+import org.terasology.asset.Assets;
+import org.terasology.components.HealthComponent;
+import org.terasology.components.HierarchicalAIComponent;
+import org.terasology.components.ItemComponent;
+import org.terasology.components.PlayerComponent;
+import org.terasology.components.SimpleAIComponent;
 import org.terasology.components.world.LocationComponent;
 import org.terasology.entityFactory.BlockItemFactory;
 import org.terasology.entitySystem.EntityManager;
@@ -40,10 +47,9 @@ import org.terasology.input.InputSystem;
 import org.terasology.logic.LocalPlayer;
 import org.terasology.logic.manager.CommandManager;
 import org.terasology.logic.manager.CommandManager.CommandInfo;
-import org.terasology.logic.manager.Config;
 import org.terasology.logic.manager.MessageManager;
 import org.terasology.logic.manager.MessageManager.EMessageScope;
-import org.terasology.logic.manager.PathManager;
+import org.terasology.game.paths.PathManager;
 import org.terasology.physics.character.CharacterMovementComponent;
 import org.terasology.rendering.cameras.Camera;
 import org.terasology.rendering.logic.MeshComponent;
@@ -85,7 +91,6 @@ public class Commands implements CommandProvider {
      * In order to resolve the {@code BlockUri}s, every package is searched for the given uri pattern.
      *
      * @param uri the uri pattern to match
-     *
      * @return a list of matching block uris
      */
     public static List<BlockUri> resolveBlockUri(String uri) {
@@ -112,7 +117,6 @@ public class Commands implements CommandProvider {
      * In order to find all fitting shapes, all asset packages are searched and a list of matching asset uris is returned.
      *
      * @param uri the uri pattern to match
-     *
      * @return a list of matching asset uris
      */
     private List<AssetUri> resolveShapeUri(String uri) {
@@ -532,7 +536,7 @@ public class Commands implements CommandProvider {
     @Command(shortDescription = "Writes out information on all entities to a text file for debugging",
             helpText = "Writes entity information out into a file named \"entityDump.txt\".")
     public void dumpEntities() throws IOException {
-        CoreRegistry.get(WorldPersister.class).save(new File(PathManager.getInstance().getDataPath(), "entityDump.txt"), WorldPersister.SaveFormat.JSON);
+        CoreRegistry.get(WorldPersister.class).save(new File(PathManager.getInstance().getHomePath(), "entityDump.txt"), WorldPersister.SaveFormat.JSON);
     }
 
     @Command(shortDescription = "Maps a key to a function")
@@ -646,7 +650,7 @@ public class Commands implements CommandProvider {
             EntityRef blockEntity = CoreRegistry.get(EntityManager.class).create(prefab, spawnPos);
             MeshComponent blockMesh = blockEntity.getComponent(MeshComponent.class);
             BlockPickupComponent blockPickup = blockEntity.getComponent(BlockPickupComponent.class);
-            blockPickup.blockFamily = block.getBlockFamily();
+            blockPickup.blockFamily = block.getPickupBlockFamily();
             blockMesh.mesh = block.getMesh();
             blockEntity.saveComponent(blockMesh);
             blockEntity.saveComponent(blockPickup);
@@ -775,11 +779,11 @@ public class Commands implements CommandProvider {
     public void fullscreen() {
         TerasologyEngine te = (TerasologyEngine) CoreRegistry.get(GameEngine.class);
 
-        if (Config.getInstance().isFullscreen()) {
+        if (te.isFullscreen()) {
             MessageManager.getInstance().addMessage("returning to desktop size", EMessageScope.PRIVATE);
         } else {
             MessageManager.getInstance().addMessage("switching to fullscreen mode", EMessageScope.PRIVATE);
         }
-        te.setFullscreen(!Config.getInstance().isFullscreen());
+        te.setFullscreen(!te.isFullscreen());
     }
 }

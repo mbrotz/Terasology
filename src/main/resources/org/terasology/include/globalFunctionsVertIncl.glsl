@@ -14,6 +14,18 @@
  * limitations under the License.
  */
 
+#define OCEAN_OCTAVES 16
+
+uniform bool swimming;
+uniform float carryingTorch;
+uniform float viewingDistance;
+uniform float daylight;
+uniform float tick;
+uniform float time;
+
+uniform vec3 sunVec;
+uniform vec3 cameraDirection;
+
 float timeToTick(float time, float speed) {
     return time * 4000.0 * speed;
 }
@@ -28,4 +40,8 @@ float triangleWave( float x ) {
 }
 float smoothTriangleWave( float x ) {
   return smoothCurve( triangleWave( x ) ) * 2.0 - 1.0 ;
+}
+
+bool checkFlag (int flag, float val) {
+    return val > float(flag) - 0.5 && val < float(flag) + 0.5;
 }
