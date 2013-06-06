@@ -56,8 +56,6 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Chunk {
     protected static final Logger logger = LoggerFactory.getLogger(Chunk.class);
 
-    public static final long serialVersionUID = 79881925217704826L;
-
     /* PUBLIC CONSTANT VALUES */
     public static final int SIZE_X = 16;
     public static final int SIZE_Y = 256;
