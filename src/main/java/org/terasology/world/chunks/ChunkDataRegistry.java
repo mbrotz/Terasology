@@ -41,10 +41,10 @@ public final class ChunkDataRegistry {
         config = CoreRegistry.get(Config.class);
         
         final TeraArrays t = TeraArrays.getInstance();
-        blockDataEntry = t.getEntry(config.getAdvanced().getBlocksFactoryName());
-        sunlightDataEntry = t.getEntry(config.getAdvanced().getSunlightFactoryName());
-        lightDataEntry = t.getEntry(config.getAdvanced().getLightFactoryName());
-        extraDataEntry = t.getEntry(config.getAdvanced().getExtraFactoryName());
+        blockDataEntry = t.getEntry(config.getAdvanced().getBlockDataClassName());
+        sunlightDataEntry = t.getEntry(config.getAdvanced().getSunlightDataClassName());
+        lightDataEntry = t.getEntry(config.getAdvanced().getLightDataClassName());
+        extraDataEntry = t.getEntry(config.getAdvanced().getExtraDataClassName());
         
         modDataEntries = Maps.newHashMap();
         

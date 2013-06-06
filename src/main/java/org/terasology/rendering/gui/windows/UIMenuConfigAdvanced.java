@@ -131,28 +131,28 @@ public class UIMenuConfigAdvanced extends UIWindow {
         comp.setLayout(layout);
         comp.setVisible(true);
         
-        comp.addDisplayElement(initFactoryCombo("Default class for block data", "block", config.getBlocksFactoryName(), new SelectionListener() {
+        comp.addDisplayElement(initFactoryCombo("Default class for block data", "block", config.getBlockDataClassName(), new SelectionListener() {
             @Override
             public void changed(UIDisplayElement element) {
-                config.setBlocksFactory((String)((UIComboBox)element).getSelection().getValue());
+                config.setBlockDataClassName((String)((UIComboBox)element).getSelection().getValue());
             }
         }));
-        comp.addDisplayElement(initFactoryCombo("Default class for sunlight data", "sunlight", config.getSunlightFactoryName(), new SelectionListener() {
+        comp.addDisplayElement(initFactoryCombo("Default class for sunlight data", "sunlight", config.getSunlightDataClassName(), new SelectionListener() {
             @Override
             public void changed(UIDisplayElement element) {
-                config.setSunlightFactory((String)((UIComboBox)element).getSelection().getValue());
+                config.setSunlightDataClassName((String)((UIComboBox)element).getSelection().getValue());
             }
         }));
-        comp.addDisplayElement(initFactoryCombo("Default class for light data", "light", config.getLightFactoryName(), new SelectionListener() {
+        comp.addDisplayElement(initFactoryCombo("Default class for light data", "light", config.getLightDataClassName(), new SelectionListener() {
             @Override
             public void changed(UIDisplayElement element) {
-                config.setLightFactory((String)((UIComboBox)element).getSelection().getValue());
+                config.setLightDataClassName((String)((UIComboBox)element).getSelection().getValue());
             }
         }));
-        comp.addDisplayElement(initFactoryCombo("Default class for liquid data", "liquid", config.getExtraFactoryName(), new SelectionListener() {
+        comp.addDisplayElement(initFactoryCombo("Default class for liquid data", "liquid", config.getExtraDataClassName(), new SelectionListener() {
             @Override
             public void changed(UIDisplayElement element) {
-                config.setExtraFactory((String)((UIComboBox)element).getSelection().getValue());
+                config.setExtraDataClassName((String)((UIComboBox)element).getSelection().getValue());
             }
         }));
         
