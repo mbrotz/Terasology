@@ -68,6 +68,7 @@ public abstract class TeraArray implements Externalizable {
 
         public SerializationHandler<T> createSerializationHandler();
         
+        @Deprecated
         public T create();
         
         public T create(int sizeX, int sizeY, int sizeZ);
