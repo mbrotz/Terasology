@@ -67,6 +67,11 @@ public final class ChunkDataRegistry {
         return extraDataEntry;
     }
     
+    public final TeraArrays.Entry getModDataEntry(String id) {
+        Preconditions.checkNotNull(id, "The parameter 'id' must not be null");
+        return modDataEntries.get(id);
+    }
+    
     public final void registerModData(String id, TeraArrays.Entry entry) {
         Preconditions.checkNotNull(id, "The parameter 'id' must not be null");
         Preconditions.checkArgument(!id.trim().isEmpty(), "The parameter 'id' must not be empty");
