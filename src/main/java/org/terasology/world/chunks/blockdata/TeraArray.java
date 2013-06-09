@@ -17,18 +17,21 @@ import com.google.common.base.Preconditions;
  * TeraArray is the base class used to store block related data in Chunks.
  * 
  * @author Manuel Brotz <manu.brotz@gmx.ch>
- *
+ * 
  */
+// #TODO Support for interface Externalizable is deprecated
 public abstract class TeraArray implements Externalizable {
 
     private int sizeX, sizeY, sizeZ, sizeXZ, sizeXZHalf, sizeXYZ, sizeXYZHalf;
 
+    @Deprecated
     protected final void writeExternalHeader(ObjectOutput out) throws IOException {
         out.writeInt(sizeX);
         out.writeInt(sizeY);
         out.writeInt(sizeZ); 
     }
 
+    @Deprecated
     protected final void readExternalHeader(ObjectInput in) throws IOException {
         sizeX = in.readInt();
         sizeY = in.readInt();
@@ -142,6 +145,7 @@ public abstract class TeraArray implements Externalizable {
         }
     }
     
+    @Deprecated
     protected TeraArray() {}
 
     protected TeraArray(int sizeX, int sizeY, int sizeZ, boolean initialize) {
