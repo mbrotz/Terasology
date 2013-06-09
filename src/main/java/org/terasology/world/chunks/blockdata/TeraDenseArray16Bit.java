@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
+import java.util.Arrays;
 
 import org.terasology.protobuf.ChunksProtobuf.Type;
 import org.terasology.world.chunks.deflate.TeraVisitingDeflator;
@@ -164,6 +165,11 @@ public class TeraDenseArray16Bit extends TeraDenseArray {
         }
         return false;
     }
+
+    @Override
+    public void fill(int value) {
+        Arrays.fill(data, (short) value);
+    } 
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {

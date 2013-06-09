@@ -272,6 +272,13 @@ public class TeraSparseArray16Bit extends TeraSparseArray {
     }
 
     @Override
+    public void fill(int value) {
+        inflated = null;
+        deflated = null;
+        fill = (short) value;
+    } 
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         writeExternalHeader(out);
         out.writeObject(inflated);

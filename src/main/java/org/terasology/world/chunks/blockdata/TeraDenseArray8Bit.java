@@ -1,5 +1,7 @@
 package org.terasology.world.chunks.blockdata;
 
+import java.util.Arrays;
+
 import org.terasology.protobuf.ChunksProtobuf.Type;
 import org.terasology.world.chunks.deflate.TeraVisitingDeflator;
 
@@ -125,5 +127,10 @@ public final class TeraDenseArray8Bit extends TeraDenseArrayByte {
         }
         return false;
     }
+
+    @Override
+    public void fill(int value) {
+        Arrays.fill(data, (byte) value);
+    } 
 
 }

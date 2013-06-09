@@ -218,4 +218,6 @@ public abstract class TeraArray implements Externalizable {
 
     public abstract boolean set(int x, int y, int z, int value, int expected);
     
+    public abstract void fill(int value);
+    
 }

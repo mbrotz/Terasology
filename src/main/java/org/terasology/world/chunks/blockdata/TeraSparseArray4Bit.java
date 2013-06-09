@@ -214,4 +214,11 @@ public final class TeraSparseArray4Bit extends TeraSparseArrayByte {
         return false;
     }
 
+    @Override
+    public void fill(int value) {
+        inflated = null;
+        deflated = null;
+        fill = TeraArrayUtils.makeByte(value, value);
+    } 
+
 }

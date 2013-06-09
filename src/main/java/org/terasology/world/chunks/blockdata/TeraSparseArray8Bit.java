@@ -178,4 +178,11 @@ public final class TeraSparseArray8Bit extends TeraSparseArrayByte {
         return false;
     }
 
+    @Override
+    public void fill(int value) {
+        inflated = null;
+        deflated = null;
+        fill = (byte) value;
+    } 
+
 }
