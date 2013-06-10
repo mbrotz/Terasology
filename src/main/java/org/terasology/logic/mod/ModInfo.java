@@ -19,16 +19,15 @@ package org.terasology.logic.mod;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
-import java.lang.reflect.Type;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
 import java.util.Set;
 
 /**
@@ -62,7 +61,7 @@ public class ModInfo {
             this.author = input.get("author").getAsString();
         else
             this.author = "";
-        if (input.has("dependencies")) {
+        if (input.has("dependencies") && input.get("dependencies").isJsonArray()) {
             final Set<String> set = Sets.newLinkedHashSet();
             final JsonArray arr = input.get("dependencies").getAsJsonArray();
             for (final JsonElement elem : arr) 
@@ -76,33 +75,7 @@ public class ModInfo {
             this.dependencies = null;
     }
     
-    public static class Handler implements JsonSerializer<ModInfo>, JsonDeserializer<ModInfo> {
-
-        @Override
-        public ModInfo deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-            final JsonObject input = json.getAsJsonObject();
-            return new ModInfo(input);
-        }
-
-        @Override
-        public JsonElement serialize(ModInfo src, Type typeOfSrc, JsonSerializationContext context) {
-            JsonObject result = new JsonObject();
-            result.addProperty("id", src.id);
-            result.addProperty("displayName", src.displayName);
-            result.addProperty("description", src.description);
-            if (src.dependencies == null)
-                result.add("dependencies", new JsonArray());
-            else {
-                final JsonArray dep = new JsonArray();
-                for (final String elem : src.dependencies) {
-                    dep.add(new JsonPrimitive(elem));
-                }
-                result.add("dependencies", dep);
-            }
-            return result;
-        }
-        
-    }
+    public static final ModInfo NULL = new ModInfo("", "", "", "", null);
     
     public ModInfo(String id, String displayName, String description, String author, Iterable<String> dependencies) {
         this.id = Preconditions.checkNotNull(id, "The parameter 'id' must not be null");
@@ -135,5 +108,29 @@ public class ModInfo {
         if (dependencies == null)
             return Sets.newLinkedHashSet();
         return Sets.newLinkedHashSet(dependencies);
+    }
+    
+    public static ModInfo load(JsonObject modInfo) {
+        Preconditions.checkNotNull(modInfo, "The parameter 'modInfo' must not be null");
+        return new ModInfo(modInfo);
+    }
+    
+    public static ModInfo load(Reader reader) throws IOException {
+        Preconditions.checkNotNull(reader, "The parameter 'reader' must not be null");
+        final JsonParser parser = new JsonParser();
+        final JsonElement element = parser.parse(reader);
+        if (element == null || !element.isJsonObject())
+            throw new IOException("Invalid mod manifest");
+        return load((JsonObject) element);
+    }
+    
+    public static ModInfo load(File file) throws IOException {
+        Preconditions.checkNotNull(file, "The parameter 'file' must not be null");
+        final FileReader reader = new FileReader(file);
+        try {
+            return load(reader);
+        } finally {
+            reader.close();
+        }
     }
 }
