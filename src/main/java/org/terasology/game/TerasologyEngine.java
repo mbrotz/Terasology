@@ -45,7 +45,6 @@ import org.terasology.monitoring.ThreadMonitor;
 import org.terasology.monitoring.impl.SingleThreadMonitor;
 import org.terasology.physics.CollisionGroupManager;
 import org.terasology.version.TerasologyGameVersionInfo;
-import org.terasology.world.chunks.ModDataExtensionsManager;
 
 import javax.swing.*;
 import java.awt.*;
@@ -412,7 +411,6 @@ public class TerasologyEngine implements GameEngine {
 
     private void initManagers() {
         CoreRegistry.put(CollisionGroupManager.class, new CollisionGroupManager());
-        CoreRegistry.put(ModDataExtensionsManager.class, new ModDataExtensionsManager());
         CoreRegistry.put(ModManager.class, new ModManager());
         CoreRegistry.put(ComponentSystemManager.class, new ComponentSystemManager());
 

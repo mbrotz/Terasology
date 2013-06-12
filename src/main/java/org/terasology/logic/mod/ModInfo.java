@@ -28,7 +28,12 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Information on a mod
@@ -38,15 +43,40 @@ import java.util.Set;
  */
 public class ModInfo {
     
+    private static final Logger logger = LoggerFactory.getLogger(ModInfo.class);
+    
     private final String id;
     private final String displayName;
     private final String description;
     private final String author;
     private final Set<String> dependencies;
+    private final Map<String, ModDataExtensionInfo> dataExtensions;
 
+    private boolean addExtension(JsonElement info, Map<String, ModDataExtensionInfo> map) {
+        if (info != null)
+            if (info.isJsonObject())
+                return addExtension(new ModDataExtensionInfo((JsonObject) info), map);
+            else
+                logger.warn("Cannot convert JSON element into mod data extension info for mod '{}'", displayName);
+        return false;
+    }
+    
+    private boolean addExtension(ModDataExtensionInfo info, Map<String, ModDataExtensionInfo> map) {
+        if (info != null)
+            if (!map.containsKey(info.getId())) 
+                if (!info.getId().isEmpty()) {
+                    map.put(info.getId(), info);
+                    return true;
+                } else
+                    logger.warn("Found invalid mod data extension for mod '{}', skipping (empty extension id)", displayName);
+            else
+                logger.warn("Found duplicate mod data extension '{}' for mod '{}', skipping ", info.getId(), displayName);
+        return false;
+    }
+    
     private ModInfo(JsonObject input) {
         if (input.has("id"))
-            this.id = input.get("id").getAsString();
+            this.id = input.get("id").getAsString().trim();
         else
             this.id = "";
         if (input.has("displayName"))
@@ -73,11 +103,17 @@ public class ModInfo {
             this.dependencies = set;
         } else
             this.dependencies = null;
+        if (input.has("dataExtensions") && input.get("dataExtensions").isJsonArray()) {
+            final Map<String, ModDataExtensionInfo> map = new HashMap<String, ModDataExtensionInfo>();
+            final JsonArray arr = input.get("dataExtensions").getAsJsonArray();
+            for (JsonElement elem : arr)
+                addExtension(elem, map);
+            this.dataExtensions = map.size() > 0 ? map : null;
+        } else
+            this.dataExtensions = null;
     }
     
-    public static final ModInfo NULL = new ModInfo("", "", "", "", null);
-    
-    public ModInfo(String id, String displayName, String description, String author, Iterable<String> dependencies) {
+    public ModInfo(String id, String displayName, String description, String author, Iterable<String> dependencies, Iterable<ModDataExtensionInfo> dataExtensions) {
         this.id = Preconditions.checkNotNull(id, "The parameter 'id' must not be null");
         this.displayName = Preconditions.checkNotNull(displayName, "The parameter 'displayName' must not be null");
         this.description = Preconditions.checkNotNull(description, "The parameter 'description' must not be null");
@@ -86,6 +122,13 @@ public class ModInfo {
             this.dependencies = Sets.newLinkedHashSet(dependencies);
         else
             this.dependencies = null;
+        if (dataExtensions != null) {
+            final Map<String, ModDataExtensionInfo> map = new HashMap<String, ModDataExtensionInfo>();
+            for (final ModDataExtensionInfo info : dataExtensions)
+                addExtension(info, map);
+            this.dataExtensions = map.size() > 0 ? map : null;
+        } else
+            this.dataExtensions = null;
     }
     
     public String getId() {
@@ -108,6 +151,12 @@ public class ModInfo {
         if (dependencies == null)
             return Sets.newLinkedHashSet();
         return Sets.newLinkedHashSet(dependencies);
+    }
+    
+    public Map<String, ModDataExtensionInfo> getDataExtensions() {
+        if (dataExtensions == null)
+            return new HashMap<String, ModDataExtensionInfo>();
+        return new HashMap<String, ModDataExtensionInfo>(dataExtensions);
     }
     
     public static ModInfo load(JsonObject modInfo) {

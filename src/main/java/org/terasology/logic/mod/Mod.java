@@ -24,40 +24,64 @@ import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
 import org.reflections.util.ConfigurationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terasology.asset.AssetManager;
 import org.terasology.asset.AssetSource;
+
+import com.google.common.base.Preconditions;
 
 /**
  * @author Immortius
  */
 public class Mod {
-    private ModInfo modInfo;
-    private File modRoot;
-    private AssetSource modSource;
+    
+    protected static final Logger logger = LoggerFactory.getLogger(Mod.class);
+            
+    private final ModInfo modInfo;
+    private final File modRoot;
+    private final AssetSource modSource;
     private boolean enabled;
     private ClassLoader inactiveClassLoader;
     private ClassLoader activeClassLoader;
     private Reflections reflections;
 
+    protected boolean enableMod() {
+        AssetManager.getInstance().addAssetSource(modSource);
+        return ModDataExtensionRegistry.getInstance().enableModExtensions(this);
+    }
+    
+    protected void disableMod() {
+        AssetManager.getInstance().removeAssetSource(modSource);
+        ModDataExtensionRegistry.getInstance().disableModExtensions(this);
+    }
+    
     public Mod(File modRoot, ModInfo info, AssetSource modSource) {
-        this.modInfo = info;
-        this.modRoot = modRoot;
-        this.modSource = modSource;
+        this.modInfo = Preconditions.checkNotNull(info, "The parameter 'info' must not be null");
+        this.modRoot = Preconditions.checkNotNull(modRoot, "The parameter 'modRoot' must not be null");
+        this.modSource = Preconditions.checkNotNull(modSource, "The parameter 'modSource' must not be null");
     }
 
     public boolean isEnabled() {
         return enabled;
     }
 
-    public void setEnabled(boolean enabled) {
+    public boolean setEnabled(boolean enabled) {
         if (this.enabled != enabled) {
-            this.enabled = enabled;
             if (enabled) {
-                AssetManager.getInstance().addAssetSource(modSource);
+                if (enableMod()) 
+                    this.enabled = true;
+                else {
+                    this.enabled = false;
+                    logger.error("Failed activating mod {} ({})", modInfo.getDisplayName(), modInfo.getId());
+                    disableMod();
+                }
             } else {
-                AssetManager.getInstance().removeAssetSource(modSource);
+                this.enabled = false;
+                disableMod();
             }
         }
+        return this.enabled;
     }
 
     public File getModRoot() {
