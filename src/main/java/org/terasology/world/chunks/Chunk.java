@@ -15,31 +15,36 @@
  */
 package org.terasology.world.chunks;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.config.AdvancedConfig;
 import org.terasology.config.Config;
 import org.terasology.game.CoreRegistry;
+import org.terasology.logic.mod.ModDataExtension;
+import org.terasology.logic.mod.ModDataExtensionRegistry;
 import org.terasology.math.AABB;
 import org.terasology.math.TeraMath;
 import org.terasology.math.Vector3i;
 import org.terasology.monitoring.ChunkMonitor;
 import org.terasology.protobuf.ChunksProtobuf;
+import org.terasology.protobuf.ChunksProtobuf.ModData;
 import org.terasology.rendering.primitives.ChunkMesh;
 import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.blockdata.TeraArray;
 import org.terasology.world.chunks.blockdata.TeraArrays;
-import org.terasology.world.chunks.blockdata.TeraDenseArray4Bit;
-import org.terasology.world.chunks.blockdata.TeraDenseArray8Bit;
+import org.terasology.world.chunks.blockdata.TeraNullArray;
 import org.terasology.world.chunks.deflate.TeraDeflator;
 import org.terasology.world.chunks.deflate.TeraStandardDeflator;
 import org.terasology.world.liquid.LiquidData;
 
 import javax.vecmath.Vector3f;
 import java.text.DecimalFormat;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -72,13 +77,14 @@ public class Chunk {
     public static final Vector3i CHUNK_SIZE = new Vector3i(SIZE_X, SIZE_Y, SIZE_Z);
     public static final Vector3i INNER_CHUNK_POS_FILTER = new Vector3i(INNER_CHUNK_POS_FILTER_X, 0, INNER_CHUNK_POS_FILTER_Z);
 
-    private ChunkState chunkState = ChunkState.ADJACENCY_GENERATION_PENDING;
     private final Vector3i pos = new Vector3i();
-
+    
+    private ChunkState chunkState;
     private TeraArray blockData;
     private TeraArray sunlightData;
     private TeraArray lightData;
     private TeraArray extraData;
+    private Map<String, TeraArray> extensionData;
 
     private boolean dirty;
     private boolean animated;
@@ -94,12 +100,14 @@ public class Chunk {
 
 
     public Chunk(int x, int y, int z) {
-        this.pos.set(x, y, z);
         final Chunks c = Chunks.getInstance();
+        this.pos.set(x, y, z);
         this.blockData = c.getBlockDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         this.sunlightData = c.getSunlightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         this.lightData = c.getLightDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         this.extraData = c.getExtraDataEntry().factory.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+        this.chunkState = ChunkState.ADJACENCY_GENERATION_PENDING;
+        this.extensionData = Maps.newConcurrentMap();
         this.dirty = true;
         ChunkMonitor.fireChunkCreated(this);
     }
@@ -109,24 +117,32 @@ public class Chunk {
     }
 
     public Chunk(Chunk other) {
-        pos.set(other.pos);
-        blockData = other.blockData.copy();
-        sunlightData = other.sunlightData.copy();
-        lightData = other.lightData.copy();
-        extraData = other.extraData.copy();
-        chunkState = other.chunkState;
-        dirty = true;
+        this.pos.set(other.pos);
+        this.blockData = other.blockData.copy();
+        this.sunlightData = other.sunlightData.copy();
+        this.lightData = other.lightData.copy();
+        this.extraData = other.extraData.copy();
+        this.chunkState = other.chunkState;
+        this.extensionData = Maps.newConcurrentMap();
+        for (Map.Entry<String, TeraArray> e : other.extensionData.entrySet()) {
+            this.extensionData.put(e.getKey(), e.getValue().copy());
+        }
+        this.dirty = true;
         ChunkMonitor.fireChunkCreated(this);
     }
 
-    public Chunk(Vector3i pos, ChunkState chunkState, TeraArray blocks, TeraArray sunlight, TeraArray light, TeraArray liquid) {
+    public Chunk(Vector3i pos, ChunkState chunkState, TeraArray blocks, TeraArray sunlight, TeraArray light, TeraArray liquid, Map<String, TeraArray> extensionData) {
         this.pos.set(Preconditions.checkNotNull(pos));
         this.blockData = Preconditions.checkNotNull(blocks);
         this.sunlightData = Preconditions.checkNotNull(sunlight);
         this.lightData = Preconditions.checkNotNull(light);
         this.extraData = Preconditions.checkNotNull(liquid);
         this.chunkState = Preconditions.checkNotNull(chunkState);
-        dirty = true;
+        if (extensionData == null)
+            this.extensionData = Maps.newConcurrentMap();
+        else
+            this.extensionData = extensionData;
+        this.dirty = true;
         ChunkMonitor.fireChunkCreated(this);
     }
 
@@ -142,13 +158,19 @@ public class Chunk {
         public ChunksProtobuf.Chunk encode(Chunk chunk) {
             Preconditions.checkNotNull(chunk, "The parameter 'chunk' must not be null");
             final TeraArrays t = TeraArrays.getInstance();
-            final ChunksProtobuf.Chunk.Builder b = ChunksProtobuf.Chunk.newBuilder()
-                    .setX(chunk.pos.x).setY(chunk.pos.y).setZ(chunk.pos.z)
-                    .setState(chunk.chunkState.id)
-                    .setBlockData(t.encode(chunk.blockData))
-                    .setSunlightData(t.encode(chunk.sunlightData))
-                    .setLightData(t.encode(chunk.lightData))
-                    .setExtraData(t.encode(chunk.extraData));
+            final ChunksProtobuf.Chunk.Builder b = ChunksProtobuf.Chunk.newBuilder();
+            b.setX(chunk.pos.x).setY(chunk.pos.y).setZ(chunk.pos.z)
+             .setState(chunk.chunkState.id)
+             .setBlockData(t.encode(chunk.blockData))
+             .setSunlightData(t.encode(chunk.sunlightData))
+             .setLightData(t.encode(chunk.lightData))
+             .setExtraData(t.encode(chunk.extraData));
+            for (Map.Entry<String, TeraArray> e : chunk.extensionData.entrySet()) {
+                final ChunksProtobuf.ModData.Builder mb = ChunksProtobuf.ModData.newBuilder();
+                mb.setData(t.encode(e.getValue()))
+                  .setId(e.getKey());
+                b.addModData(mb);
+            }
             return b.build();
         }
 
@@ -180,7 +202,18 @@ public class Chunk {
             final TeraArray sunlightData = t.decode(message.getSunlightData());
             final TeraArray lightData = t.decode(message.getLightData());
             final TeraArray extraData = t.decode(message.getExtraData());
-            return new Chunk(pos, state, blockData, sunlightData, lightData, extraData);
+            final Map<String, TeraArray> extensionData = Maps.newConcurrentMap();
+            final List<ModData> modDataList = message.getModDataList();
+            if (modDataList != null)
+                for (ModData modData : modDataList) {
+                    if (!modData.hasId() || modData.getId().trim().isEmpty())
+                        throw new IllegalArgumentException("Illformed protobuf message. Missing mod data id.");
+                    if (!modData.hasData())
+                        throw new IllegalArgumentException("Illformed protobuf message. Missing mod data.");
+                    final TeraArray data = t.decode(modData.getData());
+                    extensionData.put(modData.getId(), data);
+                }
+            return new Chunk(pos, state, blockData, sunlightData, lightData, extraData, extensionData);
         }
 
         @Override
@@ -236,6 +269,7 @@ public class Chunk {
     }
 
     public int getEstimatedMemoryConsumptionInBytes() {
+        // TODO include extension data into memory consumption estimation
         return blockData.getEstimatedMemoryConsumptionInBytes() + sunlightData.getEstimatedMemoryConsumptionInBytes() + lightData.getEstimatedMemoryConsumptionInBytes() + extraData.getEstimatedMemoryConsumptionInBytes();
     }
 
@@ -334,6 +368,28 @@ public class Chunk {
     public LiquidData getLiquid(int x, int y, int z) {
         return new LiquidData((byte) extraData.get(x, y, z));
     }
+    
+    public boolean isExtensionDataAllocated(String id) {
+        return id != null && extensionData.get(id) != null;
+    }
+    
+    public TeraArray getOrAllocateExtensionData(String id) {
+        Preconditions.checkNotNull(id, "The parameter 'id' must not be null");
+        
+        TeraArray result = extensionData.get(id);
+        if (result != null)
+            return result;
+        
+        final ModDataExtension ext = ModDataExtensionRegistry.getInstance().getEntry(id);
+        if (ext == null) {
+            logger.error("Cannot allocate unknown mod data extension '{}' for chunk {}, returning null array instead", id, pos);
+            return new TeraNullArray(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+        }
+        
+        result = ext.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+        extensionData.put(id, result);
+        return result;
+    }
 
     public Vector3i getChunkWorldPos() {
         return new Vector3i(getChunkWorldPosX(), getChunkWorldPosY(), getChunkWorldPosZ());
@@ -385,6 +441,7 @@ public class Chunk {
     private static DecimalFormat fsize = new DecimalFormat("#,###");
 
     public void deflate() {
+        // TODO implement deflation of extension data
         if (getChunkState() != ChunkState.COMPLETE) {
             logger.warn("Before deflation the state of the chunk ({}, {}, {}) should be set to State.COMPLETE but is now State.{}", getPos().x, getPos().y, getPos().z, getChunkState().toString());
         }
@@ -434,23 +491,6 @@ public class Chunk {
         }
     }
 
-    @Deprecated
-    public void inflate() {
-        lock();
-        try {
-            if (!(blockData instanceof TeraDenseArray8Bit))
-                blockData = new TeraDenseArray8Bit(blockData);
-            if (!(sunlightData instanceof TeraDenseArray4Bit))
-                sunlightData = new TeraDenseArray4Bit(sunlightData);
-            if (!(lightData instanceof TeraDenseArray4Bit))
-                lightData = new TeraDenseArray4Bit(lightData);
-            if (!(extraData instanceof TeraDenseArray4Bit))
-                extraData = new TeraDenseArray4Bit(extraData);
-        } finally {
-            unlock();
-        }
-    }
-
     @Override
     public String toString() {
         return "Chunk" + pos.toString();
@@ -458,7 +498,7 @@ public class Chunk {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(pos);
+        return pos.hashCode();
     }
 
     public void setMesh(ChunkMesh[] mesh) {
