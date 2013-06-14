@@ -36,7 +36,6 @@ import org.terasology.world.block.Block;
 import org.terasology.world.block.management.BlockManager;
 import org.terasology.world.chunks.blockdata.TeraArray;
 import org.terasology.world.chunks.blockdata.TeraArrays;
-import org.terasology.world.chunks.blockdata.TeraNullArray;
 import org.terasology.world.chunks.deflate.TeraDeflator;
 import org.terasology.world.chunks.deflate.TeraStandardDeflator;
 import org.terasology.world.liquid.LiquidData;
@@ -373,7 +372,7 @@ public class Chunk {
         return id != null && extensionData.get(id) != null;
     }
     
-    public TeraArray getOrAllocateExtensionData(String id) {
+    public TeraArray getExtensionData(String id) {
         Preconditions.checkNotNull(id, "The parameter 'id' must not be null");
         
         TeraArray result = extensionData.get(id);
@@ -382,8 +381,8 @@ public class Chunk {
         
         final ModDataExtension ext = ModDataExtensionRegistry.getInstance().getEntry(id);
         if (ext == null) {
-            logger.error("Cannot allocate unknown mod data extension '{}' for chunk {}, returning null array instead", id, pos);
-            return new TeraNullArray(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+            logger.error("Cannot allocate unknown mod data extension '{}' for chunk {}", id, pos);
+            return null;
         }
         
         result = ext.create(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
