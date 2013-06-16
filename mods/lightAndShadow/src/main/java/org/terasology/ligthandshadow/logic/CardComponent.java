@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
+package org.terasology.ligthandshadow.logic;
+
+import org.terasology.entitySystem.Component;
+import org.terasology.world.block.family.BlockFamily;
+
 /**
- * Gravel is not fancy _yet_ - not sure if it should be its own class (think sand/gravel/etc falling down)
- * Or whether _all_ blocks should have the ability to fall down under certain circumstances (think cave-in)
- * version is for Serialization purposes (maybe?) and may not make sense for all blocks
+ * This is the component class for playing cards, which are constructed of a top and a bottom block.
  */
-{
+public class CardComponent implements Component {
+    public BlockFamily topBlockFamily;
+    public BlockFamily bottomBlockFamily;
 }

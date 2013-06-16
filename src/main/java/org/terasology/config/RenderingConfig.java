@@ -18,7 +18,6 @@ public class RenderingConfig {
     private int viewDistanceFar = 32;
     private int viewDistanceUltra = 48;
     private int activeViewDistanceMode = 0;
-    private int maxChunkVBOs = 512;
     private boolean flickeringLight = false;
     private boolean animateGrass = false;
     private boolean animateWater = false;
@@ -36,6 +35,7 @@ public class RenderingConfig {
     private boolean eyeAdaptation = true;
     private boolean bloom = false;
     private boolean dynamicShadows = false;
+    private boolean oculusVrSupport = false;
 
     public int getBlurRadius() {
         return Math.max(1, blurIntensity);
@@ -117,20 +117,10 @@ public class RenderingConfig {
         this.activeViewDistanceMode = activeViewDistanceMode;
         // TODO: Remove this, switch to a property change listener
 
-        int chunksToLoad = getActiveViewingDistance() * getActiveViewingDistance();
-        setMaxChunkVBOs(chunksToLoad >= 512 ? 512 : chunksToLoad);
         WorldRenderer worldRenderer = CoreRegistry.get(WorldRenderer.class);
         if (worldRenderer != null) {
             worldRenderer.changeViewDistance(getActiveViewingDistance());
         }
-    }
-
-    public int getMaxChunkVBOs() {
-        return maxChunkVBOs;
-    }
-
-    public void setMaxChunkVBOs(int maxChunkVBOs) {
-        this.maxChunkVBOs = maxChunkVBOs;
     }
 
     public boolean isFlickeringLight() {
@@ -214,7 +204,7 @@ public class RenderingConfig {
     }
 
     public boolean isMotionBlur() {
-        return motionBlur;
+        return motionBlur && !oculusVrSupport;
     }
 
     public void setMotionBlur(boolean motionBlur) {
@@ -267,6 +257,14 @@ public class RenderingConfig {
 
     public void setBloom(boolean bloom) {
         this.bloom = bloom;
+    }
+
+    public boolean isOculusVrSupport() {
+        return oculusVrSupport;
+    }
+
+    public void setOculusVrSupport(boolean oculusVrSupport) {
+        this.oculusVrSupport = oculusVrSupport;
     }
 
     public int getActiveViewingDistance() {

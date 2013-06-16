@@ -14,10 +14,19 @@
  * limitations under the License.
  */
 
-/**
- * CobbleStone is traditionally the more broken up type of stone that drops from Stone blocks in the world
- * But maybe we'll do something else since ideally we'll have mini-blocks drop from Stone...
- */
 {
-    "mass" : 96
+	"shadowCasting" : "false",
+    "rotation" : "horizontal",
+	"shape" : "adventure:tdopen",
+	"tile" : "adventure:Trapdoor",
+	"penetrable" : true,
+    "craftPlace" : false,
+    "connectToAllBlocks" : true,
+    "entity" : {
+        "prefab" : "adventure:TrapDoorOpen",
+        "mode"   : "persistent"
+    },
+    "inventory" : {
+        "stackable" : false
+    }
 }

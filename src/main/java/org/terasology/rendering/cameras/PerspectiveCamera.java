@@ -18,7 +18,6 @@ package org.terasology.rendering.cameras;
 import static org.lwjgl.opengl.GL11.GL_PROJECTION;
 import static org.lwjgl.opengl.GL11.glMatrixMode;
 
-import javax.vecmath.Matrix4f;
 import javax.vecmath.Vector3f;
 
 import org.lwjgl.opengl.GL11;
@@ -31,24 +30,23 @@ import org.terasology.math.TeraMath;
  */
 public class PerspectiveCamera extends Camera {
 
-    private float _bobbingRotationOffsetFactor, _bobbingVerticalOffsetFactor = 0.0f;
+    private float bobbingRotationOffsetFactor, bobbingVerticalOffsetFactor;
+    private float cachedBobbingRotationOffsetFactor, cachedBobbingVerticalOffsetFactor;
 
     public void loadProjectionMatrix() {
         glMatrixMode(GL_PROJECTION);
-        GL11.glLoadMatrix(TeraMath.matrixToBuffer(_projectionMatrix));
+        GL11.glLoadMatrix(TeraMath.matrixToBuffer(projectionMatrix));
         glMatrixMode(GL11.GL_MODELVIEW);
     }
 
     public void loadModelViewMatrix() {
         glMatrixMode(GL11.GL_MODELVIEW);
-        GL11.glLoadMatrix(TeraMath.matrixToBuffer(_viewMatrix));
-        _viewFrustum.updateFrustum();
+        GL11.glLoadMatrix(TeraMath.matrixToBuffer(viewMatrix));
     }
 
     public void loadNormalizedModelViewMatrix() {
         glMatrixMode(GL11.GL_MODELVIEW);
-        GL11.glLoadMatrix(TeraMath.matrixToBuffer(_normViewMatrix));
-        _viewFrustum.updateFrustum();
+        GL11.glLoadMatrix(TeraMath.matrixToBuffer(normViewMatrix));
     }
 
     public void update(float deltaT) {
@@ -57,30 +55,48 @@ public class PerspectiveCamera extends Camera {
     }
 
     public void updateMatrices() {
-        updateMatrices(_activeFov);
+        updateMatrices(activeFov);
     }
 
-    public void updateMatrices(float overrideFov) {
+    public void updateMatrices(float fov) {
+        prevViewProjectionMatrix.set(viewProjectionMatrix);
+
+        // Nothing to do...
+        if (cachedPosition.equals(getPosition()) && cachedViewigDirection.equals(getViewingDirection())
+                && cachedBobbingRotationOffsetFactor == bobbingRotationOffsetFactor && cachedBobbingVerticalOffsetFactor == bobbingVerticalOffsetFactor
+                && lastFov == fov) {
+            return;
+        }
+
         Vector3f right = new Vector3f();
-        right.cross(_viewingDirection, _up);
-        right.scale(_bobbingRotationOffsetFactor);
+        right.cross(viewingDirection, up);
+        right.scale(bobbingRotationOffsetFactor);
 
-        _projectionMatrix = TeraMath.createPerspectiveProjectionMatrix(overrideFov, 0.1f, 5000.0f);
+        projectionMatrix = TeraMath.createPerspectiveProjectionMatrix(fov, 0.1f, 5000.0f);
 
-        _viewMatrix = TeraMath.createViewMatrix(0f, _bobbingVerticalOffsetFactor * 2.0f, 0f, _viewingDirection.x, _viewingDirection.y + _bobbingVerticalOffsetFactor * 2.0f,
-                _viewingDirection.z, _up.x + right.x, _up.y + right.y, _up.z + right.z);
-        _normViewMatrix = TeraMath.createViewMatrix(0f, 0f, 0f, _viewingDirection.x, _viewingDirection.y, _viewingDirection.z, _up.x + right.x, _up.y + right.y, _up.z + right.z);
+        viewMatrix = TeraMath.createViewMatrix(0f, bobbingVerticalOffsetFactor * 2.0f, 0f, viewingDirection.x, viewingDirection.y + bobbingVerticalOffsetFactor * 2.0f,
+                viewingDirection.z, up.x + right.x, up.y + right.y, up.z + right.z);
 
-        _prevViewProjectionMatrix = new Matrix4f(_viewProjectionMatrix);
-        _viewProjectionMatrix = TeraMath.calcViewProjectionMatrix(_viewMatrix, _projectionMatrix);
-        _inverseViewProjectionMatrix.invert(_viewProjectionMatrix);
+        normViewMatrix = TeraMath.createViewMatrix(0f, 0f, 0f, viewingDirection.x, viewingDirection.y, viewingDirection.z, up.x + right.x, up.y + right.y, up.z + right.z);
+
+        viewProjectionMatrix = TeraMath.calcViewProjectionMatrix(viewMatrix, projectionMatrix);
+        inverseViewProjectionMatrix.invert(viewProjectionMatrix);
+
+        // Used for dirty checks
+        cachedPosition.set(getPosition());
+        cachedViewigDirection.set(getViewingDirection());
+        cachedBobbingVerticalOffsetFactor = bobbingVerticalOffsetFactor;
+        cachedBobbingRotationOffsetFactor = bobbingRotationOffsetFactor;
+        lastFov = fov;
+
+        updateFrustum();
     }
 
     public void setBobbingRotationOffsetFactor(float f) {
-        _bobbingRotationOffsetFactor = f;
+        bobbingRotationOffsetFactor = f;
     }
 
     public void setBobbingVerticalOffsetFactor(float f) {
-        _bobbingVerticalOffsetFactor = f;
+        bobbingVerticalOffsetFactor = f;
     }
 }

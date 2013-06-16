@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-/**
- * Plank material stairs
- */
+ /**
+  * Invisible block.
+  */
+
 {
-    "rotation" : "horizontal",
-    "tile" : "engine:Plank",
-    "shape" : "engine:stair",
-    "craftPlace" : false
+    "translucent" : true,
+    "shadowCasting" : false,
+    "hardness" : 1
 }

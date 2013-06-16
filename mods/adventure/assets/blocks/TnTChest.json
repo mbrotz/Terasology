@@ -15,11 +15,20 @@
  */
 
 /**
- * Stone material stairs
+ * A combination of the box and TNT.
  */
 {
+    "attachmentAllowed" : false,
     "rotation" : "horizontal",
-    "tile" : "engine:stone",
-    "shape" : "engine:stair",
-    "craftPlace" : false
+    "craftPlace" : false,
+    // Graphics
+    "tiles" : {
+        "sides" : "core:ChestSides",
+        "front" : "core:ChestFront",
+        "topBottom" : "core:ChestTopBottom"
+    },
+    "entity" : {
+        "prefab" : "adventure:tntchest",
+        "mode" : "on_interaction"
+    }
 }
